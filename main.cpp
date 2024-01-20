@@ -14,6 +14,8 @@
 
 static inline double sqr(double x) { return x * x; }
 
+const double epsilon = 1e-6;
+
 class Vector
 {
 public:
@@ -53,7 +55,7 @@ public:
 		coord[2] /= norm;
 	}
 
-	void clamp(double a, double b)
+	void clip(double a, double b)
 	{
 		coord[0] = std::max(a, std::min(b, coord[0]));
 		coord[1] = std::max(a, std::min(b, coord[1]));
@@ -106,42 +108,19 @@ public:
 class Sphere
 {
 public:
-	explicit Sphere(Vector C, double R, Vector a)
-	{
-		center = C;
-		radius = R;
-		albedo = a;
-	}
-
 	Vector center;
 	double radius;
 	Vector albedo;
+	double reflectance;
+	double opacity;
+	double refractiveIndex;
 
-	bool intersect(Ray ray, Vector &P, Vector &N)
-	{
-		double a = 1;
-		double b = 2 * dot(ray.direction, ray.origin - center);
-		double c = (ray.origin - center).norm2() - std::pow(radius, 2);
-		double delta = std::pow(b, 2) - 4 * a * c;
-
-		if (delta < 0)
-		{
-			return false;
-		}
-		double t1 = (-b - std::sqrt(delta)) / (2 * a);
-		double t2 = (-b + std::sqrt(delta)) / (2 * a);
-
-		if (t1 < 0 && t2 < 0)
-		{
-			return false;
-		}
-
-		double t = t1 < t2 ? t1 : t2;
-		P = ray.origin + t * ray.direction;
-		N = (P - center).normalized();
-
-		return true;
-	}
+	// Constructor with default parameters
+	Sphere(const Vector &center = Vector(), double radius = 0.0,
+		   const Vector &albedo = Vector(), double reflectance = 0.0,
+		   double opacity = 1.0, double refractiveIndex = 1.0)
+		: center(center), radius(radius), albedo(albedo),
+		  reflectance(reflectance), opacity(opacity), refractiveIndex(refractiveIndex) {}
 
 	double intersectionDistance(Ray ray)
 	{
@@ -165,7 +144,18 @@ public:
 		double t = t1 < t2 ? t1 : t2;
 		return t;
 	}
+
+	Vector findOutPoint(Ray ray)
+	{
+		double t = this->intersectionDistance(ray);
+		return ray.origin + t * ray.direction;
+	}
 };
+
+Vector computeColor(Vector albedo, Vector lightVector, Vector N, double intensity)
+{
+	return albedo * intensity * (std::max(0., dot(lightVector.normalized(), N)) / (4 * std::pow(M_PI, 2) * lightVector.norm2()));
+}
 
 class Scene
 {
@@ -177,52 +167,139 @@ public:
 		spheres.push_back(s);
 	}
 
-	bool intersect(Ray r, Vector &P, Vector &N, int &index)
+	bool intersect(Ray ray, Vector &P, Vector &N, int &objectIndex)
 	{
 		double t = 1e10;
 		bool intersect = false;
 
 		for (int i = 0; i < spheres.size(); i++)
 		{
-			double tTemp = spheres[i].intersectionDistance(r);
+			double tTemp = spheres[i].intersectionDistance(ray);
 			if (tTemp > 0 && tTemp < t)
 			{
 				t = tTemp;
-				P = r.origin + t * r.direction;
+				P = ray.origin + t * ray.direction;
 				N = (P - spheres[i].center).normalized();
-				index = i;
+				objectIndex = i;
 				intersect = true;
 			}
 		}
 		return intersect;
 	}
+
+	bool isLightVisible(Vector P, Vector L)
+	{
+		Vector lightVector = L - P;
+		Ray lightRay(P + lightVector.normalized() * epsilon, lightVector.normalized());
+		bool isLightVisible(true);
+		for (int j = 0; j < spheres.size(); j++)
+		{
+			double tTemp = spheres[j].intersectionDistance(lightRay);
+			if (tTemp > 0 && tTemp < std::sqrt(lightVector.norm2()))
+			{
+				// si il y a une intersection entre le point et la lumiere avec une autre sphere
+				isLightVisible = false;
+				break;
+			}
+		}
+		return isLightVisible;
+	}
+
+	Vector getColor(Vector color, Vector L, Ray ray, double intensity, int depth)
+	{
+		const int maxDepth = 5;
+		if (depth > maxDepth)
+		{
+			return color;
+		}
+		Vector P, N;
+		int intersectIndex = -1;
+		bool intersect = this->intersect(ray, P, N, intersectIndex);
+		if (intersect)
+		{
+			Vector lightVector = L - P;
+
+			bool isLightVisible = this->isLightVisible(P, L);
+			if (!isLightVisible)
+			{
+				return color;
+			}
+			// si la sphere est reflechissante
+			if (spheres[intersectIndex].reflectance > 0)
+			{
+				Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+				Ray reflexionRay(P, reflexionVector);
+				Vector objectColor = computeColor(spheres[intersectIndex].albedo, lightVector, N, intensity);
+				return (1-spheres[intersectIndex].reflectance)*objectColor + spheres[intersectIndex].reflectance*getColor(color, L, reflexionRay, intensity, depth + 1);
+			}
+			else if (spheres[intersectIndex].opacity < 1)
+			{
+				// entrée dans la sphère
+				bool isEntering = dot(ray.direction, N) < 0;
+				double n1, n2;
+				if (isEntering)
+				{
+					n1 = 1.0; 
+					n2 = spheres[intersectIndex].refractiveIndex;
+				}
+				else
+				{
+					n1 = spheres[intersectIndex].refractiveIndex;
+					n2 = 1.0; 
+				}
+				double n = n1 / n2;
+				double cosThetaI = dot(ray.direction, N);
+				Vector tN = (std::sqrt(1 - sqr(n) * (1 - sqr(cosThetaI))) * N).normalized();
+				if (isEntering)
+				{
+					tN = (-1)*tN;
+				}
+				Vector tT = (n * ray.direction).normalized();
+
+				Ray refractionRay = Ray(P + tN * epsilon, tN + tT);
+				
+				return getColor(color, L, refractionRay, intensity, depth + 1);
+				
+			}
+			else
+			{
+				Vector objectColor = computeColor(spheres[intersectIndex].albedo, lightVector, N, intensity);
+				return color + objectColor;
+			}
+		}
+		return color;
+	}
 };
 
 int main()
 {
-	int W = 512;
-	int H = 512;
-	double alpha = 60 * (M_PI) / 180;
+	int W = 2000;
+	int H = 2000;
+	double alpha = 80 * (M_PI) / 180;
 
 	Vector center(0.2, 0.1, 0.);
 
 	std::vector<unsigned char> image(W * H * 3, 0);
-	const double intensity = 2e7;
+	const double intensity = 3e7;
 
 	Vector O(0, 0, 55);	   // camera origin
 	Vector L(-10, 20, 40); // light position (point light)
 	Scene scene = Scene();
-	Sphere sphere1(Vector(-12, -10, 10), 10, Vector(0.3, 0.4, 0.9));
-	Sphere sphere2(Vector(12, 0, 0), 10, Vector(0.9, 0.2, 0.3));
-	Sphere sphere3(Vector(-40, 20, -50), 30, Vector(0.9, 0.9, 0.1));
-	Sphere floor(Vector(0, -10010, 0), 10000, Vector(0.9, 0.8, 0.8));
-	Sphere wall1(Vector(0, 0, -10300), 10000, Vector(0.1, 0.8, 0.4));
+	Sphere sphere1(Vector(0, 0, 0), 10, Vector(0, 0.6, 0), 0.0, 0.0, 2.417);
+	Sphere floor(Vector(0, -1000, 0), 990, Vector(1, 1, 1), 0.5);
+	Sphere ceiling(Vector(0, 1000, 0), 940, Vector(1, 0.1, 0.1), 0.5);
+	Sphere wallBack(Vector(0, 0, -1000), 940, Vector(0.1, 0.1, 1),0.5);
+	Sphere wallFront(Vector(0, 0, 1000), 940, Vector(0.1, 0.1, 1), 0.5);
+	Sphere wallLeft(Vector(-1000, 0, 0), 940, Vector(0.5, 0.1, 1),0.5);
+	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, 5),0.5);
 
 	scene.add(sphere1);
-	scene.add(sphere2);
-	scene.add(sphere3);
 	scene.add(floor);
-	scene.add(wall1);
+	scene.add(ceiling);
+	scene.add(wallLeft);
+	scene.add(wallRight);
+	scene.add(wallBack);
+	scene.add(wallFront);
 
 	Vector albedo = scene.spheres[0].albedo;
 
@@ -234,23 +311,14 @@ int main()
 			Vector P, N;
 			Vector vector(j - W / 2 + 0.5, -i + H / 2 - 0.5, -W / (2 * std::tan(alpha / 2)));
 			Ray ray(O, vector.normalized());
-			int intersectIndex = -1;
-			bool intersect = scene.intersect(ray, P, N, intersectIndex);
 
-			if (intersect)
-			{
+			Vector color = scene.getColor(albedo, L, ray, intensity, 0);
+			color.clip(0, 255);
+			color = gammaCorrection(color);
 
-				Vector lightVector = L - P;
-				Vector albedo = scene.spheres[intersectIndex].albedo;
-				// std::cout << intersectIndex << ": "<<albedo[0] << " " << albedo[1] << " " << albedo[2] << std::endl;
-				Vector color = albedo * intensity * (std::max(0., dot(lightVector.normalized(), N)) / (4 * std::pow(M_PI, 2) * lightVector.norm2()));
-				color.clamp(0, 255);
-				color = gammaCorrection(color);
-
-				image[(i * W + j) * 3 + 0] = color[0]; // RED
-				image[(i * W + j) * 3 + 1] = color[1]; // GREEN
-				image[(i * W + j) * 3 + 2] = color[2]; // BLUE
-			}
+			image[(i * W + j) * 3 + 0] = color[0]; // RED
+			image[(i * W + j) * 3 + 1] = color[1]; // GREEN
+			image[(i * W + j) * 3 + 2] = color[2]; // BLUE
 		}
 	}
 	stbi_write_png("image.png", W, H, 3, &image[0], 0);
