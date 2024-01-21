@@ -9,7 +9,7 @@ double sqr(double x)
 
 Vector gammaCorrection(Vector color)
 {
-    return pow(color / 255, 1 / GAMMA);
+    return pow(color / 255, 1 / GAMMA)*255;
 }
 
 Vector computeColor(Vector albedo, Vector lightVector, Vector N, double intensity)

@@ -14,7 +14,7 @@ public:
 
     bool intersect(Ray ray, Vector &P, Vector &N, int &objectIndex);
 
-    bool isLightVisible(Vector P, Vector L);
+    double isLightVisible(Vector P, Vector L);
 
     Vector getColor(Vector color, Vector L, Ray ray, double intensity, int depth);
 

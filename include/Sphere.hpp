@@ -22,6 +22,4 @@ public:
            double refractiveIndex = 1.0);
 
     double intersectionDistance(Ray ray);
-
-    Vector findOutPoint(Ray ray);
 };

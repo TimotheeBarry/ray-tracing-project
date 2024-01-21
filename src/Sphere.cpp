@@ -3,9 +3,18 @@
 #include "../include/Ray.hpp"
 #include <cmath>
 
-Sphere::Sphere(const Vector &center, double radius,
-               const Vector &albedo, double reflectance,
-               double opacity, double refractiveIndex) : center(center), radius(radius), albedo(albedo), reflectance(reflectance), opacity(opacity), refractiveIndex(refractiveIndex) {}
+Sphere::Sphere(
+    const Vector &center,
+    double radius,
+    const Vector &albedo,
+    double reflectance,
+    double opacity,
+    double refractiveIndex) : center(center),
+                              radius(radius),
+                              albedo(albedo),
+                              reflectance(reflectance),
+                              opacity(opacity),
+                              refractiveIndex(refractiveIndex) {}
 
 double Sphere::intersectionDistance(Ray ray)
 {
@@ -28,10 +37,4 @@ double Sphere::intersectionDistance(Ray ray)
 
     double t = t1 < t2 ? t1 : t2;
     return t;
-}
-
-Vector Sphere::findOutPoint(Ray ray)
-{
-    double t = this->intersectionDistance(ray);
-    return ray.origin + t * ray.direction;
 }
