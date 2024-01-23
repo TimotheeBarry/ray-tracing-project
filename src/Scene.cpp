@@ -30,28 +30,28 @@ bool Scene::intersect(Ray ray, Vector &P, Vector &N, int &objectIndex)
     return intersect;
 }
 
-double Scene::isLightVisible(Vector P, Vector L)
+double Scene::lightVisibility(Vector P, Vector lightSource)
 {
-    Vector lightVector = L - P;
-    Ray lightRay(P + lightVector.normalized() * EPSILON, lightVector.normalized());
-    double isLightVisible(1);
+    Vector L = lightSource - P;
+    Ray lightRay(P + L.normalized() * EPSILON, L.normalized());
+    double lightVisibility(1);
     for (size_t j = 0; j < spheres.size(); j++)
     {
         double tTemp = spheres[j].intersectionDistance(lightRay);
-        if (tTemp > 0 && tTemp < std::sqrt(lightVector.norm2()))
+        if (tTemp > 0 && tTemp < std::sqrt(L.norm2()))
         {
             // si il y a une intersection entre le point et la lumiere avec une autre sphere
             // TODO: tenir compte de la réfraction?
-            isLightVisible *= 1 - spheres[j].opacity;
+            lightVisibility *= 1 - spheres[j].opacity;
             // break;
         }
     }
-    return isLightVisible;
+    return lightVisibility;
 }
 
-Vector Scene::getColor(Vector color, Vector L, Ray ray, double intensity, int depth)
+Vector Scene::getColor(Vector color, Vector lightSource, Ray ray, double intensity, int depth)
 {
-    const int maxDepth = 10;
+    const int maxDepth = 8;
     if (depth > maxDepth)
     {
         return color;
@@ -61,24 +61,24 @@ Vector Scene::getColor(Vector color, Vector L, Ray ray, double intensity, int de
     bool intersect = this->intersect(ray, P, N, intersectIndex);
     if (intersect)
     {
-        Vector lightVector = L - P;
+        Sphere sphere = spheres[intersectIndex];
+        Vector L = lightSource - P; // light vector from point P to light source
 
-        double isLightVisible = this->isLightVisible(P, L);
-        if (isLightVisible < 1e-3)
-        {
-            return color;
-        }
+        double lightVisibility = this->lightVisibility(P, lightSource);
         // si la sphere est reflechissante
-        const double reflectance = spheres[intersectIndex].reflectance;
+        const double reflectance = sphere.reflectance;
         if (reflectance > 0)
         {
+            // couleur diffusée
+            Vector diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
+            // couleur réfléchie
             Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
-            Ray reflexionRay(P, reflexionVector);
-            Vector objectColor = computeColor(isLightVisible * spheres[intersectIndex].albedo, lightVector, N, intensity);
-            Vector reflexionColor = getColor(color, L, reflexionRay, intensity, depth + 1);
-            return (1 - reflectance) * objectColor + reflectance * reflexionColor;
+            Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+            Vector reflectedColor = getColor(color, lightSource, reflectedRay, intensity, depth + 1);
+
+            return (1 - reflectance) * diffusedColor + reflectance * reflectedColor;
         }
-        else if (spheres[intersectIndex].opacity < 1)
+        else if (sphere.opacity < 1)
         {
             // entrée ou sortie de la sphère
             bool isEntering = dot(ray.direction, N) < 0;
@@ -86,30 +86,29 @@ Vector Scene::getColor(Vector color, Vector L, Ray ray, double intensity, int de
             if (isEntering)
             {
                 n1 = 1.0;
-                n2 = spheres[intersectIndex].refractiveIndex;
+                n2 = sphere.refractiveIndex;
+                N = (-1) * N;
             }
             else
             {
-                n1 = spheres[intersectIndex].refractiveIndex;
+                n1 = sphere.refractiveIndex;
                 n2 = 1.0;
             }
             double n = n1 / n2;
             double cosThetaI = dot(ray.direction, N);
             Vector tN = std::sqrt(1 - sqr(n) * (1 - sqr(cosThetaI))) * N;
-            if (isEntering)
-            {
-                tN = (-1) * tN;
-            }
+
             Vector tT = n * ray.direction;
 
-            Ray refractionRay = Ray(P + (tT + tN).normalized() * EPSILON, (tN + tT).normalized());
-            Vector refractionColor = getColor(color, L, refractionRay, intensity, depth + 1);
-            return refractionColor;
+            Ray refractionRay = Ray(P + N * EPSILON, (tN + tT).normalized());
+            Vector refractionColor = getColor(color, lightSource, refractionRay, intensity, depth + 1);
+            double lightTransmissionCoef = isEntering ? sphere.opacity : 1;
+            return lightTransmissionCoef * refractionColor;
         }
         else
         {
-            Vector objectColor = computeColor(isLightVisible * spheres[intersectIndex].albedo, lightVector, N, intensity);
-            return color + objectColor;
+            Vector diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
+            return diffusedColor;
         }
     }
     return color;
