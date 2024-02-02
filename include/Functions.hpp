@@ -11,4 +11,6 @@ std::vector<unsigned char> subSampleImage(std::vector<unsigned char> image, int 
 
 double getPercentage(int i, int j, int H, int W);
 
+void boxMuller(double stddev, double &x, double &y);
+
 Vector gammaCorrection(Vector color);

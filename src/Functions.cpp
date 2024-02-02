@@ -1,21 +1,22 @@
 #include "../include/Functions.hpp"
 #include "../include/Constants.hpp"
-#include <random>
 #include <cmath>
+std::default_random_engine engine;
+std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
 double sqr(double x)
 {
-    return x * x;
+	return x * x;
 }
 
 Vector gammaCorrection(Vector color)
 {
-    return pow(color / 255, 1 / GAMMA)*255;
+	return pow(color / 255, 1 / GAMMA) * 255;
 }
 
 Vector computeColor(Vector albedo, Vector L, Vector N, double intensity, double lightVisibility)
 {
-    return lightVisibility * albedo * intensity * (std::max(0., dot(L.normalized(), N)) / (4 * sqr(PI) * L.norm2()));
+	return lightVisibility * albedo * intensity * (std::max(0., dot(L.normalized(), N)) / (4 * sqr(PI) * L.norm2()));
 }
 
 std::vector<unsigned char> subSampleImage(std::vector<unsigned char> image, int W, int H, int subSamplingFactor)
@@ -53,8 +54,17 @@ std::vector<unsigned char> subSampleImage(std::vector<unsigned char> image, int 
 	return subSampledImage;
 }
 
-//fonction qui donne le pourcentage de remplissage d'un carré de taille H*W pour i et j
+// fonction qui donne le pourcentage de remplissage d'un carré de taille H*W pour i et j
 double getPercentage(int i, int j, int H, int W)
 {
-    return (double)(i * W + j) / (H * W);
+	return (double)(i * W + j) / (H * W);
+}
+
+void boxMuller(double stddev, double &x, double &y)
+{
+	double r1 = uniform(engine);
+	double r2 = uniform(engine);
+
+	x = sqrt(-2 * log(r1)) * cos(2 * PI * r2) * stddev;
+	y = sqrt(-2 * log(r1)) * sin(2 * PI * r2) * stddev;
 }

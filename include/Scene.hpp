@@ -14,11 +14,11 @@ public:
 
     void add(Sphere s);
 
-    bool intersect(Ray ray, Vector &P, Vector &N, int &objectIndex);
+    bool intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex);
 
     double lightVisibility(Vector &P);
 
-    Vector getColor(Vector color, Ray ray, int depth);
+    Vector getColor(Ray &ray, int depth);
 
 };
 

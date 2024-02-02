@@ -17,14 +17,11 @@
 
 #include <iostream>
 
-#include <mutex>
-std::mutex mtx;
-
 Scene createDefaultScene()
 {
 	Scene scene = Scene();
 	scene.lightSource = Vector(-10, 20, 40);
-	scene.intensity = 2e7;
+	scene.intensity = 1e7;
 
 	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1)); // sphere blanche
 
@@ -51,17 +48,17 @@ Scene myScene()
 	scene.intensity = 1e7;
 
 	Sphere sphere1(Vector(0, 0, 0), 10, Vector(0, 0.6, 0), 0.0, 0.0, 1.5);
-	Sphere sphere2(Vector(10, 10, -10), 10, Vector(0, 1, 1), 0.0, 0.0, 1.33);
+	// Sphere sphere2(Vector(10, 0, -10), 10, Vector(0, 1, 1), 0.0, 0.0, 1.33);
 	Sphere sphere3(Vector(-30, -2, -10), 8, Vector(1, 0, 1), 1.0);
 	Sphere floor(Vector(0, -1000, 0), 990, Vector(1, 1, 1), 0.0);
 	Sphere ceiling(Vector(0, 1000, 0), 940, Vector(1, 0.1, 0.1), 0.0);
 	Sphere wallBack(Vector(0, 0, 1000), 940, Vector(0.1, 0.1, 1), 0.0);
-	Sphere wallFront(Vector(0, 0, -1000), 940, Vector(0.1, 0.1, 1), 1.0);
+	Sphere wallFront(Vector(0, 0, -1000), 940, Vector(0.1, 0.1, 1), 0.0);
 	Sphere wallLeft(Vector(-1000, 0, 0), 940, Vector(0.5, 0.1, 1), 0.0);
-	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, 5), 0.0);
+	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, .5), 0.0);
 
-	// scene.add(sphere1);
-	scene.add(sphere2);
+	scene.add(sphere1);
+	// scene.add(sphere2);
 	scene.add(sphere3);
 	scene.add(floor);
 	scene.add(ceiling);
@@ -76,13 +73,13 @@ Scene myScene()
 int main()
 {
 	bool showProgress = true;
-	double n = 0.0; // pourcentage de complétion
-	int s = 1024;
+	// double n = 0.0; // pourcentage de complétion
+	int s = 512;
 	int W = s;
 	int H = s;
-	int subSamplingFactor = 1;
+	// int subSamplingFactor = 1;
 	double alpha = 80 * (PI) / 180;
-	const int nbRays = 36;
+	const int nbRays = 100;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -91,18 +88,23 @@ int main()
 	// Scene scene = createDefaultScene();
 	Scene scene = myScene();
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++)
 	{
+
 		for (int j = 0; j < W; j++)
 		{
-			Vector P, N;
-			Vector vector(j - W / 2 + 0.5, -i + H / 2 - 0.5, -W / (2 * std::tan(alpha / 2)));
-			Ray ray(O, vector.normalized());
+			// Vector P, N;
 			Vector color(0, 0, 0);
+			double di, dj;
 			for (int k = 0; k < nbRays; k++)
 			{
-				color += scene.getColor(Vector(0, 0, 0), ray, 5);
+
+				double di, dj;
+				boxMuller(0.2, di, dj);
+				Vector vector(j - W / 2 + 0.5 + dj, -i + H / 2 - 0.5 + di, -W / (2 * std::tan(alpha / 2)));
+				Ray ray(O, vector.normalized());
+				color += scene.getColor(ray, 5);
 			}
 			color /= nbRays;
 
@@ -112,41 +114,11 @@ int main()
 			image[(i * W + j) * 3 + 0] = color[0]; // RED
 			image[(i * W + j) * 3 + 1] = color[1]; // GREEN
 			image[(i * W + j) * 3 + 2] = color[2]; // BLUE
-
-			if (showProgress)
-			{
-				double progress = getPercentage(i, j, H, W);
-				if (progress > (n / 100))
-				{
-					int barWidth = 70;
-					mtx.lock();
-					std::cout << "[";
-					int pos = barWidth * progress;
-					for (int i = 0; i < barWidth; ++i)
-					{
-						if (i < pos)
-							std::cout << "=";
-						else if (i == pos)
-							std::cout << ">";
-						else
-							std::cout << " ";
-					}
-					n = n + 0.1; // Update n based on progress percentage
-					std::cout << "] " << n << " %\r";
-					std::cout.flush();
-					mtx.unlock();
-				}
-			}
 		}
 	}
-	if (showProgress)
-	{
-		std::cout << std::endl;
-	}
 
-	std::vector<unsigned char> subSampledImage = subSampleImage(image, W, H, subSamplingFactor);
 
-	stbi_write_png("image.png", W / subSamplingFactor, H / subSamplingFactor, 3, &subSampledImage[0], 0);
+	stbi_write_png("image.png", W , H , 3, &image[0], 0);
 
 	return 0;
 }

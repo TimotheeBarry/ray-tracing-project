@@ -9,7 +9,7 @@ void Scene::add(Sphere s)
     spheres.push_back(s);
 }
 
-bool Scene::intersect(Ray ray, Vector &P, Vector &N, int &objectIndex)
+bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex)
 {
     double t = 1e20;
     bool intersect = false;
@@ -41,17 +41,18 @@ double Scene::lightVisibility(Vector &P)
         {
             // si il y a une intersection entre le point et la lumiere avec une autre sphere
             // TODO: tenir compte de la réfraction?
-            lightVisibility *= 1 - spheres[j].opacity;
+            // lightVisibility *= 1 - spheres[j].opacity;
+            return 0;
         }
     }
     return lightVisibility;
 }
 
-Vector Scene::getColor(Vector color, Ray ray, int depth)
+Vector Scene::getColor(Ray &ray, int depth)
 {
     if (depth == 0)
     {
-        return color;
+        return Vector(0, 0, 0);
     }
 
     Vector P, N;
@@ -69,10 +70,10 @@ Vector Scene::getColor(Vector color, Ray ray, int depth)
         Vector indirectColor(0, 0, 0), reflectedColor(0, 0, 0), transmissionColor(0, 0, 0), diffusedColor(0, 0, 0);
 
         // contribution indirecte
-
         Vector randomVector = generateRandomCosineVector(N);
         Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
-        indirectColor += (getColor(color, randomRay, depth - 1) * sphere.albedo);
+        indirectColor += (getColor(randomRay, depth - 1) * sphere.albedo);
+        // indirectColor /= PI;
 
         // lumière diffusée
         diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
@@ -106,11 +107,11 @@ Vector Scene::getColor(Vector color, Ray ray, int depth)
             Vector tT = n * ray.direction;
             // refraction
             Ray refractionRay = Ray(P + N * EPSILON, (tN + tT).normalized());
-            transmissionColor = T * getColor(color, refractionRay, depth - 1);
+            transmissionColor = T * getColor(refractionRay, depth - 1);
             // reflection
             Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
             Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-            reflectedColor = R * getColor(color, reflectedRay, depth - 1);
+            reflectedColor = R * getColor(reflectedRay, depth - 1);
 
             return reflectedColor + transmissionColor;
         }
@@ -119,12 +120,12 @@ Vector Scene::getColor(Vector color, Ray ray, int depth)
         {
             Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
             Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-            reflectedColor = reflectance * getColor(color, reflectedRay, depth - 1);
+            reflectedColor = reflectance * getColor(reflectedRay, depth - 1);
 
-            return (1 - reflectance) * (diffusedColor + indirectColor / PI) + reflectedColor;
+            return (1 - reflectance) * (diffusedColor + indirectColor) + reflectedColor;
         }
 
-        return diffusedColor + indirectColor / PI;
+        return diffusedColor + indirectColor;
     }
-    return color;
+    return Vector(0, 0, 0);
 }

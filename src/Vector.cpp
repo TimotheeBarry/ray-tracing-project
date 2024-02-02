@@ -1,11 +1,9 @@
 #include "../include/Vector.hpp"
 #include "../include/Functions.hpp"
 #include "../include/Constants.hpp"
-#include <random>
 #include <cmath>
-
 std::default_random_engine gen;
-std::uniform_real_distribution<double> uniform(0.0, 1.0); // loi uniforme entre 0 et 1
+std::uniform_real_distribution<double> uniform1(0.0, 1.0);
 std::uniform_real_distribution<double> uniform2(-1.0, 1.0);
 
 Vector::Vector(double x, double y, double z)
@@ -116,8 +114,8 @@ Vector generateRandomUniformVector()
 Vector generateRandomCosineVector(Vector &N)
 {
     // génère un vecteur aléatoire suivant une loi cosinus dont la 3e coordonnée est suivant N
-    double r1 = uniform(gen);
-    double r2 = uniform(gen);
+    double r1 = uniform1(gen);
+    double r2 = uniform1(gen);
     Vector randomVector(cos(2 * PI * r1) * sqrt(1 - r2), sin(2 * PI * r1) * sqrt(1 - r2), sqrt(r2));
 
     // on créé un repère local (u, v, N) à partir de N
