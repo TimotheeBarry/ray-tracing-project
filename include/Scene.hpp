@@ -9,13 +9,17 @@ class Scene
 {
 public:
     std::vector<Sphere> spheres;
+    double intensity;
+    Vector lightSource;
 
     void add(Sphere s);
 
     bool intersect(Ray ray, Vector &P, Vector &N, int &objectIndex);
 
-    double lightVisibility(Vector P, Vector L);
+    double lightVisibility(Vector &P);
 
-    Vector getColor(Vector color, Vector lightSource, Ray ray, double intensity, int depth);
+    Vector getColor(Vector color, Ray ray, int depth);
 
 };
+
+

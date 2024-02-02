@@ -8,12 +8,12 @@ Sphere::Sphere(
     double radius,
     const Vector &albedo,
     double reflectance,
-    double opacity,
+    double isTransparent,
     double refractiveIndex) : center(center),
                               radius(radius),
                               albedo(albedo),
                               reflectance(reflectance),
-                              opacity(opacity),
+                              opacity(isTransparent),
                               refractiveIndex(refractiveIndex) {}
 
 double Sphere::intersectionDistance(Ray ray)

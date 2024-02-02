@@ -1,5 +1,6 @@
 #include "../include/Functions.hpp"
 #include "../include/Constants.hpp"
+#include <random>
 #include <cmath>
 
 double sqr(double x)

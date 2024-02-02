@@ -17,33 +17,48 @@
 
 #include <iostream>
 
-int main()
+#include <mutex>
+std::mutex mtx;
+
+Scene createDefaultScene()
 {
-	bool showProgress = true;
-	double n = 0.0; // pourcentage de complétion
-	int s = 4096;
-	int W = s;
-	int H = s;
-	int subSamplingFactor = 1;
-	double alpha = 80 * (PI) / 180;
-
-	Vector center(0.2, 0.1, 0.);
-
-	std::vector<unsigned char> image(W * H * 3, 0);
-	const double intensity = 3e7;
-
-	Vector O(0, 0, 55);				 // camera origin
-	Vector lightSource(-10, 20, 40); // light position (point light)
 	Scene scene = Scene();
-	Sphere sphere1(Vector(0, 0, 0), 10, Vector(0, 0.6, 0), 0.0, 0.5, 2.4);
-	Sphere sphere2(Vector(10, 10, -10), 10, Vector(0, 1, 1), 0.0, 0.5, 1.33);
+	scene.lightSource = Vector(-10, 20, 40);
+	scene.intensity = 2e7;
+
+	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1)); // sphere blanche
+
+	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1));
+	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 1, 1));
+	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 20), 10000, Vector(0, 1, 1));
+	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
+	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
+
+	scene.add(sphere1);
+	scene.add(floor);
+	scene.add(ceiling);
+	scene.add(wallLeft);
+	scene.add(wallRight);
+	scene.add(wallFront);
+
+	return scene;
+}
+
+Scene myScene()
+{
+	Scene scene = Scene();
+	scene.lightSource = Vector(-10, 20, 40);
+	scene.intensity = 1e7;
+
+	Sphere sphere1(Vector(0, 0, 0), 10, Vector(0, 0.6, 0), 0.0, 0.0, 1.5);
+	Sphere sphere2(Vector(10, 10, -10), 10, Vector(0, 1, 1), 0.0, 0.0, 1.33);
 	Sphere sphere3(Vector(-30, -2, -10), 8, Vector(1, 0, 1), 1.0);
-	Sphere floor(Vector(0, -1000, 0), 990, Vector(1, 1, 1), 0.5);
-	Sphere ceiling(Vector(0, 1000, 0), 940, Vector(1, 0.1, 0.1), 0.1);
-	Sphere wallBack(Vector(0, 0, 1000), 940, Vector(0.1, 0.1, 1), 0.1);
+	Sphere floor(Vector(0, -1000, 0), 990, Vector(1, 1, 1), 0.0);
+	Sphere ceiling(Vector(0, 1000, 0), 940, Vector(1, 0.1, 0.1), 0.0);
+	Sphere wallBack(Vector(0, 0, 1000), 940, Vector(0.1, 0.1, 1), 0.0);
 	Sphere wallFront(Vector(0, 0, -1000), 940, Vector(0.1, 0.1, 1), 1.0);
-	Sphere wallLeft(Vector(-1000, 0, 0), 940, Vector(0.5, 0.1, 1), 0.1);
-	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, 5), 0.1);
+	Sphere wallLeft(Vector(-1000, 0, 0), 940, Vector(0.5, 0.1, 1), 0.0);
+	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, 5), 0.0);
 
 	// scene.add(sphere1);
 	scene.add(sphere2);
@@ -55,7 +70,26 @@ int main()
 	scene.add(wallBack);
 	scene.add(wallFront);
 
-	Vector albedo = scene.spheres[0].albedo;
+	return scene;
+}
+
+int main()
+{
+	bool showProgress = true;
+	double n = 0.0; // pourcentage de complétion
+	int s = 1024;
+	int W = s;
+	int H = s;
+	int subSamplingFactor = 1;
+	double alpha = 80 * (PI) / 180;
+	const int nbRays = 36;
+
+	std::vector<unsigned char> image(W * H * 3, 0);
+
+	Vector O(0, 0, 55); // camera origin
+
+	// Scene scene = createDefaultScene();
+	Scene scene = myScene();
 
 #pragma omp parallel for
 	for (int i = 0; i < H; i++)
@@ -65,8 +99,12 @@ int main()
 			Vector P, N;
 			Vector vector(j - W / 2 + 0.5, -i + H / 2 - 0.5, -W / (2 * std::tan(alpha / 2)));
 			Ray ray(O, vector.normalized());
-
-			Vector color = scene.getColor(albedo, lightSource, ray, intensity, 0);
+			Vector color(0, 0, 0);
+			for (int k = 0; k < nbRays; k++)
+			{
+				color += scene.getColor(Vector(0, 0, 0), ray, 5);
+			}
+			color /= nbRays;
 
 			color.clip(0, 255);
 			color = gammaCorrection(color);
@@ -76,14 +114,12 @@ int main()
 			image[(i * W + j) * 3 + 2] = color[2]; // BLUE
 
 			if (showProgress)
-			// afficher le pourcentage de complétion dans une barre de chargement
 			{
 				double progress = getPercentage(i, j, H, W);
 				if (progress > (n / 100))
 				{
-					// std::cout << n << "% done" << std::endl;
 					int barWidth = 70;
-
+					mtx.lock();
 					std::cout << "[";
 					int pos = barWidth * progress;
 					for (int i = 0; i < barWidth; ++i)
@@ -95,9 +131,10 @@ int main()
 						else
 							std::cout << " ";
 					}
-					std::cout << "] " << int(progress * 100.0) << " %\r";
+					n = n + 0.1; // Update n based on progress percentage
+					std::cout << "] " << n << " %\r";
 					std::cout.flush();
-					n += 1;
+					mtx.unlock();
 				}
 			}
 		}

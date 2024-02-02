@@ -1,7 +1,6 @@
 #include "../include/Scene.hpp"
 #include "../include/Functions.hpp"
 #include "../include/Constants.hpp"
-
 #include <cmath>
 #include <iostream>
 
@@ -30,7 +29,7 @@ bool Scene::intersect(Ray ray, Vector &P, Vector &N, int &objectIndex)
     return intersect;
 }
 
-double Scene::lightVisibility(Vector P, Vector lightSource)
+double Scene::lightVisibility(Vector &P)
 {
     Vector L = lightSource - P;
     Ray lightRay(P + L.normalized() * EPSILON, L.normalized());
@@ -43,19 +42,18 @@ double Scene::lightVisibility(Vector P, Vector lightSource)
             // si il y a une intersection entre le point et la lumiere avec une autre sphere
             // TODO: tenir compte de la réfraction?
             lightVisibility *= 1 - spheres[j].opacity;
-            // break;
         }
     }
     return lightVisibility;
 }
 
-Vector Scene::getColor(Vector color, Vector lightSource, Ray ray, double intensity, int depth)
+Vector Scene::getColor(Vector color, Ray ray, int depth)
 {
-    const int maxDepth = 8;
-    if (depth > maxDepth)
+    if (depth == 0)
     {
         return color;
     }
+
     Vector P, N;
     int intersectIndex = -1;
     bool intersect = this->intersect(ray, P, N, intersectIndex);
@@ -64,21 +62,23 @@ Vector Scene::getColor(Vector color, Vector lightSource, Ray ray, double intensi
         Sphere sphere = spheres[intersectIndex];
         Vector L = lightSource - P; // light vector from point P to light source
 
-        double lightVisibility = this->lightVisibility(P, lightSource);
-        // si la sphere est reflechissante
+        double lightVisibility = this->lightVisibility(P);
         const double reflectance = sphere.reflectance;
-        if (reflectance > 0)
-        {
-            // couleur diffusée
-            Vector diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
-            // couleur réfléchie
-            Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
-            Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-            Vector reflectedColor = getColor(color, lightSource, reflectedRay, intensity, depth + 1);
+        const double opacity = sphere.opacity;
 
-            return (1 - reflectance) * diffusedColor + reflectance * reflectedColor;
-        }
-        else if (sphere.opacity < 1)
+        Vector indirectColor(0, 0, 0), reflectedColor(0, 0, 0), transmissionColor(0, 0, 0), diffusedColor(0, 0, 0);
+
+        // contribution indirecte
+
+        Vector randomVector = generateRandomCosineVector(N);
+        Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
+        indirectColor += (getColor(color, randomRay, depth - 1) * sphere.albedo);
+
+        // lumière diffusée
+        diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
+        double R(-1), T(-1); // coeffecient de transmission
+        // Si la sphere est transparente
+        if (opacity < 1)
         {
             // entrée ou sortie de la sphère
             bool isEntering = dot(ray.direction, N) < 0;
@@ -94,22 +94,37 @@ Vector Scene::getColor(Vector color, Vector lightSource, Ray ray, double intensi
                 n1 = sphere.refractiveIndex;
                 n2 = 1.0;
             }
+            double k0 = sqr((n1 - n2) / (n1 + n2));
+
+            R = k0 + (1 - k0) * std::pow(1 - std::abs(dot(ray.direction, N)), 5);
+            T = 1 - R;
+
             double n = n1 / n2;
             double cosThetaI = dot(ray.direction, N);
             Vector tN = std::sqrt(1 - sqr(n) * (1 - sqr(cosThetaI))) * N;
 
             Vector tT = n * ray.direction;
-
+            // refraction
             Ray refractionRay = Ray(P + N * EPSILON, (tN + tT).normalized());
-            Vector refractionColor = getColor(color, lightSource, refractionRay, intensity, depth + 1);
-            double lightTransmissionCoef = isEntering ? sphere.opacity : 1;
-            return lightTransmissionCoef * refractionColor;
+            transmissionColor = T * getColor(color, refractionRay, depth - 1);
+            // reflection
+            Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+            Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+            reflectedColor = R * getColor(color, reflectedRay, depth - 1);
+
+            return reflectedColor + transmissionColor;
         }
-        else
+        // réflexion
+        else if (reflectance > 0)
         {
-            Vector diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
-            return diffusedColor;
+            Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+            Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+            reflectedColor = reflectance * getColor(color, reflectedRay, depth - 1);
+
+            return (1 - reflectance) * (diffusedColor + indirectColor / PI) + reflectedColor;
         }
+
+        return diffusedColor + indirectColor / PI;
     }
     return color;
 }
