@@ -67,16 +67,8 @@ Vector Scene::getColor(Ray &ray, int depth)
         const double reflectance = sphere.reflectance;
         const double opacity = sphere.opacity;
 
-        Vector indirectColor(0, 0, 0), reflectedColor(0, 0, 0), transmissionColor(0, 0, 0), diffusedColor(0, 0, 0);
+        // Vector reflectedColor(0, 0, 0), transmissionColor(0, 0, 0);
 
-        // contribution indirecte
-        Vector randomVector = generateRandomCosineVector(N);
-        Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
-        indirectColor += (getColor(randomRay, depth - 1) * sphere.albedo);
-        // indirectColor /= PI;
-
-        // lumière diffusée
-        diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
         double R(-1), T(-1); // coeffecient de transmission
         // Si la sphere est transparente
         if (opacity < 1)
@@ -105,27 +97,50 @@ Vector Scene::getColor(Ray &ray, int depth)
             Vector tN = std::sqrt(1 - sqr(n) * (1 - sqr(cosThetaI))) * N;
 
             Vector tT = n * ray.direction;
-            // refraction
-            Ray refractionRay = Ray(P + N * EPSILON, (tN + tT).normalized());
-            transmissionColor = T * getColor(refractionRay, depth - 1);
-            // reflection
-            Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
-            Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-            reflectedColor = R * getColor(reflectedRay, depth - 1);
-
-            return reflectedColor + transmissionColor;
+            std::default_random_engine gen;
+            std::uniform_real_distribution<double> uniform(0.0, 1.0);
+            // on choisit aléatoirement entre réflexion et transmission avec proba qui dépend des coefficients R et T
+            if (uniform(gen) < T)
+            {
+                // transmission
+                Ray ray = Ray(P + N * EPSILON, (tN + tT).normalized());
+                return getColor(ray, depth - 1);
+            }
+            else
+            {
+                // réflexion
+                Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+                Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+                return getColor(reflectedRay, depth - 1);
+            }
         }
-        // réflexion
-        else if (reflectance > 0)
+        else
         {
-            Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
-            Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-            reflectedColor = reflectance * getColor(reflectedRay, depth - 1);
+            Vector indirectColor(0, 0, 0), diffusedColor(0, 0, 0);
+            // on calcule la contribution directe et indirecte que si la sphère n'est pas un miroir pur pour éviter les calculs inutiles
+            if (reflectance < 1)
+            {
+                // contribution indirecte
+                Vector randomVector = generateRandomCosineVector(N);
+                Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
+                indirectColor = getColor(randomRay, depth - 1) * sphere.albedo;
 
-            return (1 - reflectance) * (diffusedColor + indirectColor) + reflectedColor;
+                // lumière diffusée
+                diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
+            }
+
+            // réflexion
+            if (reflectance > 0)
+            {
+                Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+                Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+                Vector reflectedColor = getColor(reflectedRay, depth - 1);
+
+                return (1 - reflectance) * (diffusedColor + indirectColor) + reflectance * reflectedColor;
+            }
+
+            return diffusedColor + indirectColor;
         }
-
-        return diffusedColor + indirectColor;
     }
     return Vector(0, 0, 0);
 }

@@ -48,17 +48,17 @@ Scene myScene()
 	scene.intensity = 1e7;
 
 	Sphere sphere1(Vector(0, 0, 0), 10, Vector(0, 0.6, 0), 0.0, 0.0, 1.5);
-	// Sphere sphere2(Vector(10, 0, -10), 10, Vector(0, 1, 1), 0.0, 0.0, 1.33);
-	Sphere sphere3(Vector(-30, -2, -10), 8, Vector(1, 0, 1), 1.0);
-	Sphere floor(Vector(0, -1000, 0), 990, Vector(1, 1, 1), 0.0);
+	Sphere sphere2(Vector(20, 0, -10), 10, Vector(0, 1, 1), 0.0, 0.0, 1.33);
+	Sphere sphere3(Vector(-30, 0, -10), 10, Vector(1, 0, 1), 1.0);
+	Sphere floor(Vector(0, -1000, 0), 990, Vector(1, 1, 1), 0.1);
 	Sphere ceiling(Vector(0, 1000, 0), 940, Vector(1, 0.1, 0.1), 0.0);
 	Sphere wallBack(Vector(0, 0, 1000), 940, Vector(0.1, 0.1, 1), 0.0);
-	Sphere wallFront(Vector(0, 0, -1000), 940, Vector(0.1, 0.1, 1), 0.0);
-	Sphere wallLeft(Vector(-1000, 0, 0), 940, Vector(0.5, 0.1, 1), 0.0);
-	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, .5), 0.0);
+	Sphere wallFront(Vector(0, 0, -1000), 940, Vector(0.1, 0.1, 1), 0.2);
+	Sphere wallLeft(Vector(-1000, 0, 0), 940, Vector(0.5, 0.1, 1), 0.2);
+	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, .5), 0.2);
 
 	scene.add(sphere1);
-	// scene.add(sphere2);
+	scene.add(sphere2);
 	scene.add(sphere3);
 	scene.add(floor);
 	scene.add(ceiling);
@@ -74,7 +74,7 @@ int main()
 {
 	bool showProgress = true;
 	// double n = 0.0; // pourcentage de complétion
-	int s = 512;
+	int s = 1024;
 	int W = s;
 	int H = s;
 	// int subSamplingFactor = 1;
