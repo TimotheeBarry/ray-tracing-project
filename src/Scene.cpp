@@ -4,14 +4,19 @@
 #include <cmath>
 #include <iostream>
 
-void Scene::add(Sphere s)
+void Scene::addSphere(Sphere s)
 {
     spheres.push_back(s);
 }
 
-bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex)
+void Scene::addLight(Sphere s)
 {
-    double t = 1e20;
+    lights.push_back(s);
+}
+
+bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t)
+{
+    t = 1e20;
     bool intersect = false;
 
     for (size_t i = 0; i < spheres.size(); i++)
@@ -29,47 +34,25 @@ bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex)
     return intersect;
 }
 
-double Scene::lightVisibility(Vector &P)
-{
-    Vector L = lightSource - P;
-    Ray lightRay(P + L.normalized() * EPSILON, L.normalized());
-    double lightVisibility(1);
-    for (size_t j = 0; j < spheres.size(); j++)
-    {
-        double tTemp = spheres[j].intersectionDistance(lightRay);
-        if (tTemp > 0 && tTemp < std::sqrt(L.norm2()))
-        {
-            // si il y a une intersection entre le point et la lumiere avec une autre sphere
-            // TODO: tenir compte de la réfraction?
-            // lightVisibility *= 1 - spheres[j].opacity;
-            return 0;
-        }
-    }
-    return lightVisibility;
-}
-
 Vector Scene::getColor(Ray &ray, int depth)
 {
-    if (depth == 0)
+    if (depth < 0)
     {
         return Vector(0, 0, 0);
     }
 
     Vector P, N;
     int intersectIndex = -1;
-    bool intersect = this->intersect(ray, P, N, intersectIndex);
+    double t;
+    bool intersect = this->intersect(ray, P, N, intersectIndex, t);
     if (intersect)
     {
-        Sphere sphere = spheres[intersectIndex];
-        Vector L = lightSource - P; // light vector from point P to light source
 
-        double lightVisibility = this->lightVisibility(P);
+        Sphere &sphere = spheres[intersectIndex];
         const double reflectance = sphere.reflectance;
         const double opacity = sphere.opacity;
-
-        // Vector reflectedColor(0, 0, 0), transmissionColor(0, 0, 0);
-
         double R(-1), T(-1); // coeffecient de transmission
+
         // Si la sphere est transparente
         if (opacity < 1)
         {
@@ -97,8 +80,6 @@ Vector Scene::getColor(Ray &ray, int depth)
             Vector tN = std::sqrt(1 - sqr(n) * (1 - sqr(cosThetaI))) * N;
 
             Vector tT = n * ray.direction;
-            std::default_random_engine gen;
-            std::uniform_real_distribution<double> uniform(0.0, 1.0);
             // on choisit aléatoirement entre réflexion et transmission avec proba qui dépend des coefficients R et T
             if (uniform(gen) < T)
             {
@@ -121,12 +102,30 @@ Vector Scene::getColor(Ray &ray, int depth)
             if (reflectance < 1)
             {
                 // contribution indirecte
-                Vector randomVector = generateRandomCosineVector(N);
+                Vector randomVector = N.generateRandomCosineVector();
                 Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
                 indirectColor = getColor(randomRay, depth - 1) * sphere.albedo;
 
-                // lumière diffusée
-                diffusedColor = computeColor(sphere.albedo, L, N, intensity, lightVisibility);
+                // Contribution directe
+                for (size_t i = 0; i < lights.size(); i++)
+                {
+                    Vector axisVector = (P - lights[i].center).normalized();
+                    Vector randomVector = (P - lights[i].center).generateRandomCosineVector().normalized();
+                    Vector randomLightSource = randomVector * lights[i].radius + lights[i].center;
+                    Vector wi = (randomLightSource - P).normalized();
+                    double lightDistanceSquared = (randomLightSource - P).norm2();
+                    Ray lightRay(P + N * EPSILON, wi);
+                    Vector Plight, Nlight;
+                    // int objectIndex;
+                    // double tlight;
+                    // bool intersectLight = this->intersect(lightRay, Plight, Nlight, objectIndex, tlight);
+
+                    // if (intersectLight && tlight * tlight < lightDistanceSquared * 0.99)
+                    // {
+                    //     continue;
+                    // }
+                    diffusedColor += lights[i].lightIntensity / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * lights[i].albedo * sphere.albedo;
+                }
             }
 
             // réflexion

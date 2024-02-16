@@ -2,9 +2,9 @@
 #include "../include/Functions.hpp"
 #include "../include/Constants.hpp"
 #include <cmath>
-std::default_random_engine gen;
-std::uniform_real_distribution<double> uniform1(0.0, 1.0);
-std::uniform_real_distribution<double> uniform2(-1.0, 1.0);
+// std::default_random_engine gen;
+// std::uniform_real_distribution<double> uniform1(0.0, 1.0);
+// std::uniform_real_distribution<double> uniform2(-1.0, 1.0);
 
 Vector::Vector(double x, double y, double z)
 {
@@ -60,6 +60,21 @@ void Vector::clip(double a, double b)
     coord[2] = std::max(a, std::min(b, coord[2]));
 }
 
+Vector Vector::generateRandomCosineVector()
+{
+    // génère un vecteur aléatoire suivant une loi cosinus selon le vecteur courant
+    double r1 = uniform(gen);
+    double r2 = uniform(gen);
+    Vector randomVector(cos(2 * PI * r1) * sqrt(1 - r2), sin(2 * PI * r1) * sqrt(1 - r2), sqrt(r2));
+
+    // on créé un repère local (u, v, N) à partir de N
+    Vector u = cross(*this, generateRandomUniformVector()).normalized();
+    Vector v = cross(*this, u).normalized();
+
+    // on retourne le vecteur aléatoire dans le repère global
+    return randomVector[0] * u + randomVector[1] * v + randomVector[2] * (*this);
+}
+
 Vector operator+(const Vector &a, const Vector &b)
 {
     return Vector(a[0] + b[0], a[1] + b[1], a[2] + b[2]);
@@ -108,20 +123,5 @@ Vector cross(const Vector &a, const Vector &b)
 Vector generateRandomUniformVector()
 {
     // génère un vecteur aléatoire dont chaque coordonnée est comprise entre -1 et 1 (uniformément)
-    return Vector(uniform2(gen), uniform2(gen), uniform2(gen));
-}
-
-Vector generateRandomCosineVector(Vector &N)
-{
-    // génère un vecteur aléatoire suivant une loi cosinus dont la 3e coordonnée est suivant N
-    double r1 = uniform1(gen);
-    double r2 = uniform1(gen);
-    Vector randomVector(cos(2 * PI * r1) * sqrt(1 - r2), sin(2 * PI * r1) * sqrt(1 - r2), sqrt(r2));
-
-    // on créé un repère local (u, v, N) à partir de N
-    Vector u = cross(N, generateRandomUniformVector()).normalized();
-    Vector v = cross(N, u).normalized();
-
-    // on retourne le vecteur aléatoire dans le repère global
-    return randomVector[0] * u + randomVector[1] * v + randomVector[2] * N;
+    return Vector(uniform(gen) - .5, uniform(gen) - .5, uniform(gen) - .5);
 }

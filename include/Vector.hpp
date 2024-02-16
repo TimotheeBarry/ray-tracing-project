@@ -12,6 +12,7 @@ public:
     Vector normalized();
     void normalize();
     void clip(double a, double b);
+    Vector generateRandomCosineVector();
 
     double coord[3];
 };
@@ -25,5 +26,4 @@ Vector operator/(const Vector &a, double b);
 Vector pow(const Vector &a, double b);
 Vector cross(const Vector &a, const Vector &b);
 Vector generateRandomUniformVector();
-Vector generateRandomCosineVector(Vector &N);
 double dot(const Vector &a, const Vector &b);

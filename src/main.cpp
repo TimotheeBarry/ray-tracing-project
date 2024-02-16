@@ -20,10 +20,12 @@
 Scene createDefaultScene()
 {
 	Scene scene = Scene();
-	scene.lightSource = Vector(-10, 20, 40);
-	scene.intensity = 1e7;
+	Sphere lightSource1(Vector(-10, 20, 40), 10, Vector(1, 0.2, 0.2), .0, .0, .0, 1e6);
+	Sphere lightSource2(Vector(10, 20, 40), 10, Vector(0.2, 0.2, 1), .0, .0, .0, 1e6);
+	scene.addLight(lightSource1);
+	scene.addLight(lightSource2);
 
-	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1)); // sphere blanche
+	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1), 0.0, 0.0, 1.4); // sphere blanche
 
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1));
 	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 1, 1));
@@ -31,12 +33,12 @@ Scene createDefaultScene()
 	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
 	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
 
-	scene.add(sphere1);
-	scene.add(floor);
-	scene.add(ceiling);
-	scene.add(wallLeft);
-	scene.add(wallRight);
-	scene.add(wallFront);
+	scene.addSphere(sphere1);
+	scene.addSphere(floor);
+	scene.addSphere(ceiling);
+	scene.addSphere(wallLeft);
+	scene.addSphere(wallRight);
+	scene.addSphere(wallFront);
 
 	return scene;
 }
@@ -44,8 +46,8 @@ Scene createDefaultScene()
 Scene myScene()
 {
 	Scene scene = Scene();
-	scene.lightSource = Vector(-10, 20, 40);
-	scene.intensity = 1e7;
+	Sphere lightSource(Vector(-10, 20, 40), 10, Vector(1, 1, 1), .0, .0, .0, 3e6);
+	scene.addLight(lightSource);
 
 	Sphere sphere1(Vector(0, 0, 0), 10, Vector(0, 0.6, 0), 0.0, 0.0, 1.5);
 	Sphere sphere2(Vector(20, 0, -10), 10, Vector(0, 1, 1), 0.0, 0.0, 1.33);
@@ -57,15 +59,15 @@ Scene myScene()
 	Sphere wallLeft(Vector(-1000, 0, 0), 940, Vector(0.5, 0.1, 1), 0.2);
 	Sphere wallRight(Vector(1000, 0, 0), 940, Vector(0.1, 0.1, .5), 0.2);
 
-	scene.add(sphere1);
-	scene.add(sphere2);
-	scene.add(sphere3);
-	scene.add(floor);
-	scene.add(ceiling);
-	scene.add(wallLeft);
-	scene.add(wallRight);
-	scene.add(wallBack);
-	scene.add(wallFront);
+	scene.addSphere(sphere1);
+	scene.addSphere(sphere2);
+	scene.addSphere(sphere3);
+	scene.addSphere(floor);
+	scene.addSphere(ceiling);
+	scene.addSphere(wallLeft);
+	scene.addSphere(wallRight);
+	scene.addSphere(wallBack);
+	scene.addSphere(wallFront);
 
 	return scene;
 }
@@ -73,20 +75,19 @@ Scene myScene()
 int main()
 {
 	bool showProgress = true;
-	// double n = 0.0; // pourcentage de complétion
-	int s = 1024;
+	int s = 512;
 	int W = s;
 	int H = s;
-	// int subSamplingFactor = 1;
+
 	double alpha = 80 * (PI) / 180;
-	const int nbRays = 100;
+	const int nbRays = 25;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
 	Vector O(0, 0, 55); // camera origin
 
-	// Scene scene = createDefaultScene();
-	Scene scene = myScene();
+	Scene scene = createDefaultScene();
+	// Scene scene = myScene();
 
 #pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++)
@@ -94,7 +95,6 @@ int main()
 
 		for (int j = 0; j < W; j++)
 		{
-			// Vector P, N;
 			Vector color(0, 0, 0);
 			double di, dj;
 			for (int k = 0; k < nbRays; k++)
@@ -117,8 +117,7 @@ int main()
 		}
 	}
 
-
-	stbi_write_png("image.png", W , H , 3, &image[0], 0);
+	stbi_write_png("image.png", W, H, 3, &image[0], 0);
 
 	return 0;
 }

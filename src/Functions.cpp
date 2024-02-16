@@ -1,8 +1,6 @@
 #include "../include/Functions.hpp"
 #include "../include/Constants.hpp"
 #include <cmath>
-std::default_random_engine engine;
-std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
 double sqr(double x)
 {
@@ -62,8 +60,8 @@ double getPercentage(int i, int j, int H, int W)
 
 void boxMuller(double stddev, double &x, double &y)
 {
-	double r1 = uniform(engine);
-	double r2 = uniform(engine);
+	double r1 = uniform(gen);
+	double r2 = uniform(gen);
 
 	x = sqrt(-2 * log(r1)) * cos(2 * PI * r2) * stddev;
 	y = sqrt(-2 * log(r1)) * sin(2 * PI * r2) * stddev;

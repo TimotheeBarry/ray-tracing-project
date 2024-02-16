@@ -9,12 +9,16 @@ Sphere::Sphere(
     const Vector &albedo,
     double reflectance,
     double isTransparent,
-    double refractiveIndex) : center(center),
-                              radius(radius),
-                              albedo(albedo),
-                              reflectance(reflectance),
-                              opacity(isTransparent),
-                              refractiveIndex(refractiveIndex) {}
+    double refractiveIndex,
+    double lightIntensity) : center(center),
+                             radius(radius),
+                             albedo(albedo),
+                             reflectance(reflectance),
+                             opacity(isTransparent),
+                             refractiveIndex(refractiveIndex),
+                             lightIntensity(lightIntensity)
+{
+}
 
 double Sphere::intersectionDistance(Ray ray)
 {
@@ -37,4 +41,13 @@ double Sphere::intersectionDistance(Ray ray)
 
     double t = t1 < t2 ? t1 : t2;
     return t;
+}
+
+std::tuple<Vector, Vector> Sphere::getRandomPonctualLight(const Vector &P) const
+{
+    Vector N = (P - center).normalized();
+    Vector randomVector = N.generateRandomCosineVector();
+    randomVector.normalize();
+
+    return std::make_tuple(randomVector, N);
 }
