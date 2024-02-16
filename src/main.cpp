@@ -20,12 +20,17 @@
 Scene createDefaultScene()
 {
 	Scene scene = Scene();
-	Sphere lightSource1(Vector(-10, 20, 40), 10, Vector(1, 0.2, 0.2), .0, .0, .0, 1e6);
-	Sphere lightSource2(Vector(10, 20, 40), 10, Vector(0.2, 0.2, 1), .0, .0, .0, 1e6);
-	scene.addLight(lightSource1);
-	scene.addLight(lightSource2);
+	Sphere lightSource1(Vector(-10, 20, 40), 5, Vector(1, .0, .0), .0, .0, .0, 1e9);
+	Sphere lightSource2(Vector(10, 20, 40), 5, Vector(.0, 1, .0), .0, .0, .0, 1e9);
+	Sphere lightSource3(Vector(0, 20, 40), 5, Vector(.0, .0, 1), .0, .0, .0, 1e9);
+	
+	scene.addSphere(lightSource1);
+	scene.addSphere(lightSource2);
+	scene.addSphere(lightSource3);
 
-	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1), 0.0, 0.0, 1.4); // sphere blanche
+	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1)); // sphere centrale
+	Sphere sphere2(Vector(30, 0, 12), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
+	Sphere sphere3(Vector(-30, 0, 12), 10, Vector(1, 1, 1), 1.0); // sphere gauche
 
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1));
 	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 1, 1));
@@ -34,6 +39,8 @@ Scene createDefaultScene()
 	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
 
 	scene.addSphere(sphere1);
+	scene.addSphere(sphere2);
+	scene.addSphere(sphere3);
 	scene.addSphere(floor);
 	scene.addSphere(ceiling);
 	scene.addSphere(wallLeft);
@@ -47,7 +54,7 @@ Scene myScene()
 {
 	Scene scene = Scene();
 	Sphere lightSource(Vector(-10, 20, 40), 10, Vector(1, 1, 1), .0, .0, .0, 3e6);
-	scene.addLight(lightSource);
+	scene.addSphere(lightSource);
 
 	Sphere sphere1(Vector(0, 0, 0), 10, Vector(0, 0.6, 0), 0.0, 0.0, 1.5);
 	Sphere sphere2(Vector(20, 0, -10), 10, Vector(0, 1, 1), 0.0, 0.0, 1.33);

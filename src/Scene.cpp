@@ -9,11 +9,6 @@ void Scene::addSphere(Sphere s)
     spheres.push_back(s);
 }
 
-void Scene::addLight(Sphere s)
-{
-    lights.push_back(s);
-}
-
 bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t)
 {
     t = 1e20;
@@ -34,7 +29,7 @@ bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &
     return intersect;
 }
 
-Vector Scene::getColor(Ray &ray, int depth)
+Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
 {
     if (depth < 0)
     {
@@ -44,17 +39,24 @@ Vector Scene::getColor(Ray &ray, int depth)
     Vector P, N;
     int intersectIndex = -1;
     double t;
-    bool intersect = this->intersect(ray, P, N, intersectIndex, t);
-    if (intersect)
+    if (this->intersect(ray, P, N, intersectIndex, t))
     {
 
         Sphere &sphere = spheres[intersectIndex];
-        const double reflectance = sphere.reflectance;
-        const double opacity = sphere.opacity;
-        double R(-1), T(-1); // coeffecient de transmission
+
+        // Si c'est une sphère lumineuse
+        if (sphere.lightIntensity > 0)
+        {
+            if (isIndirect)
+            {
+                // Si c'est un rebond de lumière indirecte, on ne prend pas en compte la lumière des sphères lumineuses
+                return Vector(0, 0, 0);
+            }
+            return sphere.albedo * sphere.lightIntensity / (4 * sqr(PI * sphere.radius));
+        }
 
         // Si la sphere est transparente
-        if (opacity < 1)
+        if (sphere.opacity < 1)
         {
             // entrée ou sortie de la sphère
             bool isEntering = dot(ray.direction, N) < 0;
@@ -72,8 +74,8 @@ Vector Scene::getColor(Ray &ray, int depth)
             }
             double k0 = sqr((n1 - n2) / (n1 + n2));
 
-            R = k0 + (1 - k0) * std::pow(1 - std::abs(dot(ray.direction, N)), 5);
-            T = 1 - R;
+            double R = k0 + (1 - k0) * std::pow(1 - std::abs(dot(ray.direction, N)), 5);
+            double T = 1 - R;
 
             double n = n1 / n2;
             double cosThetaI = dot(ray.direction, N);
@@ -85,57 +87,61 @@ Vector Scene::getColor(Ray &ray, int depth)
             {
                 // transmission
                 Ray ray = Ray(P + N * EPSILON, (tN + tT).normalized());
-                return getColor(ray, depth - 1);
+                return this->getColor(ray, depth - 1, isIndirect);
             }
             else
             {
                 // réflexion
                 Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
                 Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-                return getColor(reflectedRay, depth - 1);
+                return this->getColor(reflectedRay, depth - 1, isIndirect);
             }
         }
         else
         {
             Vector indirectColor(0, 0, 0), diffusedColor(0, 0, 0);
             // on calcule la contribution directe et indirecte que si la sphère n'est pas un miroir pur pour éviter les calculs inutiles
-            if (reflectance < 1)
+            if (sphere.reflectance < 1)
             {
                 // contribution indirecte
                 Vector randomVector = N.generateRandomCosineVector();
                 Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
-                indirectColor = getColor(randomRay, depth - 1) * sphere.albedo;
+                indirectColor = this->getColor(randomRay, depth - 1, true) * sphere.albedo;
 
                 // Contribution directe
-                for (size_t i = 0; i < lights.size(); i++)
+                for (size_t i = 0; i < spheres.size(); i++)
                 {
-                    Vector axisVector = (P - lights[i].center).normalized();
-                    Vector randomVector = (P - lights[i].center).generateRandomCosineVector().normalized();
-                    Vector randomLightSource = randomVector * lights[i].radius + lights[i].center;
+                    if (spheres[i].lightIntensity == 0)
+                    {
+                        continue;
+                    }
+                    Vector axisVector = (P - spheres[i].center).normalized();
+                    Vector randomVector = (P - spheres[i].center).generateRandomCosineVector().normalized();
+                    Vector randomLightSource = randomVector * spheres[i].radius + spheres[i].center;
                     Vector wi = (randomLightSource - P).normalized();
                     double lightDistanceSquared = (randomLightSource - P).norm2();
                     Ray lightRay(P + N * EPSILON, wi);
                     Vector Plight, Nlight;
-                    // int objectIndex;
-                    // double tlight;
-                    // bool intersectLight = this->intersect(lightRay, Plight, Nlight, objectIndex, tlight);
-
-                    // if (intersectLight && tlight * tlight < lightDistanceSquared * 0.99)
-                    // {
-                    //     continue;
-                    // }
-                    diffusedColor += lights[i].lightIntensity / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * lights[i].albedo * sphere.albedo;
+                    int objectIndex;
+                    double tlight;
+                    // check if light is visible
+                    if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1-EPSILON))
+                    {
+                        continue;
+                    }
+                    double lightIntensity = spheres[i].lightIntensity / (4 * sqr(PI * spheres[i].radius));
+                    diffusedColor += lightIntensity / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * spheres[i].albedo * sphere.albedo;
                 }
             }
 
             // réflexion
-            if (reflectance > 0)
+            if (sphere.reflectance > 0)
             {
                 Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
                 Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-                Vector reflectedColor = getColor(reflectedRay, depth - 1);
+                Vector reflectedColor = this->getColor(reflectedRay, depth - 1, isIndirect);
 
-                return (1 - reflectance) * (diffusedColor + indirectColor) + reflectance * reflectedColor;
+                return (1 - sphere.reflectance) * (diffusedColor + indirectColor) + sphere.reflectance * reflectedColor;
             }
 
             return diffusedColor + indirectColor;
