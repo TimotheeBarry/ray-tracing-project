@@ -1,4 +1,60 @@
-#include "../include/Mesh.hpp"
+#include "../include/TriangleMesh.hpp"
+#include <cstring>
+#include <string>
+#include <vector>
+
+double TriangleMesh::intersect(Ray ray, Vector &N)
+{
+    double tmin = 1e99;
+    for (int i = 0; i < indices.size(); i++)
+    {
+        TriangleIndices triangleIndices = indices[i];
+        // sommets du triangle
+        Vector v0 = vertices[triangleIndices.vtxi];
+        Vector v1 = vertices[triangleIndices.vtxj];
+        Vector v2 = vertices[triangleIndices.vtxk];
+
+        Vector e1 = v1 - v0;
+        Vector e2 = v2 - v0;
+
+        // normale
+        Vector Ni = cross(v1 - v0, v2 - v0).normalized();
+
+        // calcul de l'intersection
+        double t = dot(v0 - ray.origin, N) / dot(ray.direction, N);
+        if (t < 0)
+        {
+            // le triangle est derrière le rayon
+            continue;
+        }
+        double beta = dot(e2, cross(ray.direction - v0, ray.direction)) / dot(ray.direction, N);
+        double gamma = -dot(e1, cross(v0 - ray.origin, ray.direction)) / dot(ray.direction, N);
+
+        // conditions d'intersection
+        if (beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < tmin)
+        {
+            tmin = t;
+            N = Ni;
+        }
+    }
+    return tmin;
+}
+
+void TriangleMesh::translate(Vector t)
+{
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        vertices[i] = vertices[i] + t;
+    }
+}
+
+void TriangleMesh::scale(double s)
+{
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        vertices[i] = vertices[i] * s;
+    }
+}
 
 void TriangleMesh::readOBJ(const char *obj)
 {

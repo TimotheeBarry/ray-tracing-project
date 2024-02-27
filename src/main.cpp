@@ -20,21 +20,22 @@
 Scene createDefaultScene()
 {
 	Scene scene = Scene();
-	Sphere lightSource1(Vector(-10, 20, 40), 5, Vector(1, .0, .0), .0, .0, .0, 1e9);
-	Sphere lightSource2(Vector(10, 20, 40), 5, Vector(.0, 1, .0), .0, .0, .0, 1e9);
-	Sphere lightSource3(Vector(0, 20, 40), 5, Vector(.0, .0, 1), .0, .0, .0, 1e9);
-	
+	Sphere lightSource1(Vector(-10, 20, 40), 5, Vector(1, 1, 1), .0, .0, .0, 1e9);
+	Sphere lightSource2(Vector(10, 20, 40), 5, Vector(1, 1, 1), .0, .0, .0, 1e9);
+	Sphere lightSource3(Vector(0, 20, 40), 5, Vector(1, 1, 1), .0, .0, .0, 1e9);
+
 	scene.addSphere(lightSource1);
 	scene.addSphere(lightSource2);
 	scene.addSphere(lightSource3);
 
-	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1)); // sphere centrale
+	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1));					// sphere centrale
 	Sphere sphere2(Vector(30, 0, 12), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
-	Sphere sphere3(Vector(-30, 0, 12), 10, Vector(1, 1, 1), 1.0); // sphere gauche
+	Sphere sphere3(Vector(-30, 0, 12), 10, Vector(1, 1, 1), 1.0);			// sphere gauche
 
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1));
 	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 1, 1));
 	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 20), 10000, Vector(0, 1, 1));
+	Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, Vector(1, 0, 1), 0.0);
 	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
 	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
 
@@ -46,6 +47,7 @@ Scene createDefaultScene()
 	scene.addSphere(wallLeft);
 	scene.addSphere(wallRight);
 	scene.addSphere(wallFront);
+	scene.addSphere(wallBack);
 
 	return scene;
 }
@@ -87,7 +89,7 @@ int main()
 	int H = s;
 
 	double alpha = 80 * (PI) / 180;
-	const int nbRays = 25;
+	const int nbRays = 3;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 

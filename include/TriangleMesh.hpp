@@ -1,9 +1,7 @@
-#include <string>
-#include <iostream>
-#include <stdio.h>
-#include <algorithm>
+#pragma once
+
 #include <vector>
-#include "Vector.hpp"
+#include "Object.hpp"
 
 class TriangleIndices
 {
@@ -15,15 +13,19 @@ public:
     int group;            // face group
 };
 
-class TriangleMesh
+class TriangleMesh : Object
 {
 public:
     ~TriangleMesh() {}
     TriangleMesh(){};
 
-    void readOBJ(const char *obj)
-    {
-    }
+    void readOBJ(const char *obj);
+
+    void scale(double s);
+
+    void translate(Vector t);
+
+    double intersect(Ray ray, Vector &N) override;
 
     std::vector<TriangleIndices> indices;
     std::vector<Vector> vertices;
