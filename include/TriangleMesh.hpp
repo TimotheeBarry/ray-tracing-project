@@ -13,7 +13,7 @@ public:
     int group;            // face group
 };
 
-class TriangleMesh : Object
+class TriangleMesh : public Object
 {
 public:
     ~TriangleMesh() {}
@@ -25,7 +25,11 @@ public:
 
     void translate(Vector t);
 
-    double intersect(Ray ray, Vector &P, Vector &N) const override;
+    double intersect(Ray &ray, Vector &P, Vector &N) const override;
+
+    Vector getBarycenter() const;
+
+    std::pair<Vector, Vector> getBoundingBox() const;
 
     std::vector<TriangleIndices> indices;
     std::vector<Vector> vertices;

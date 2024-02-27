@@ -2,9 +2,7 @@
 #include "../include/Functions.hpp"
 #include "../include/Constants.hpp"
 #include <cmath>
-// std::default_random_engine gen;
-// std::uniform_real_distribution<double> uniform1(0.0, 1.0);
-// std::uniform_real_distribution<double> uniform2(-1.0, 1.0);
+#include <sstream>
 
 Vector::Vector(double x, double y, double z)
 {
@@ -75,6 +73,10 @@ Vector Vector::generateRandomCosineVector()
     return randomVector[0] * u + randomVector[1] * v + randomVector[2] * (*this);
 }
 
+std::string Vector::toString()
+{
+    return "(" + std::to_string(coord[0]) + ", " + std::to_string(coord[1]) + ", " + std::to_string(coord[2]) + ")";
+}
 Vector operator+(const Vector &a, const Vector &b)
 {
     return Vector(a[0] + b[0], a[1] + b[1], a[2] + b[2]);

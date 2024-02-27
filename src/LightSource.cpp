@@ -7,7 +7,7 @@ LightSource::LightSource(
     double radius,
     double intensity) : center(center), radius(radius), intensity(intensity) {}
 
-double LightSource::intersect(Ray ray, Vector &P, Vector &N) const
+double LightSource::intersect(Ray &ray, Vector &P, Vector &N) const
 {
     return Sphere(center, radius).intersect(ray, P, N);
 }

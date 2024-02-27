@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+
 
 class Vector
 {
@@ -13,6 +15,7 @@ public:
     void normalize();
     void clip(double a, double b);
     Vector generateRandomCosineVector();
+    std::string toString();
 
     double coord[3];
 };

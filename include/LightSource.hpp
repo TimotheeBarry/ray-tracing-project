@@ -17,7 +17,7 @@ public:
            double radius = 0.0,
            double intensity = 0.0);
 
-    double intersect(Ray ray, Vector &P, Vector &N) const override;
+    double intersect(Ray &ray, Vector &P, Vector &N) const override;
 
     double realIntensity() const;
 

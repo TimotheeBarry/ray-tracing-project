@@ -25,6 +25,6 @@ public:
            double refractiveIndex = 1.0,
            double lightIntensity = 0.0);
 
-    double intersect(Ray ray, Vector &P, Vector &N) const override;
+    double intersect(Ray &ray, Vector &P, Vector &N) const override;
 
 };

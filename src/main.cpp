@@ -86,7 +86,7 @@
 int main()
 {
 	bool showProgress = true;
-	int s = 512;
+	int s = 256;
 	int W = s;
 	int H = s;
 
@@ -106,8 +106,22 @@ int main()
 	Sphere sphere2(Vector(30, 0, 12), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
 	Sphere sphere3(Vector(-30, 0, 12), 10, Vector(1, 1, 1), 1.0);			// sphere gauche
 
-	// auto mesh = TriangleMesh();
-	// mesh.readOBJ("data/cat.obj");
+	TriangleMesh mesh = TriangleMesh();
+	mesh.readOBJ("data/cat.obj");
+	Vector barycenter = mesh.getBarycenter();
+	mesh.translate(Vector(0, 0, 0) - barycenter);
+	mesh.scale(0.03);
+	// mesh.vertices.push_back(Vector(-10, 0, -10));
+	// mesh.vertices.push_back(Vector(10, 0, 10));
+	// mesh.vertices.push_back(Vector(0, 10, 0));
+	// mesh.indices.push_back(TriangleIndices(0, 1, 2));
+
+	// get bounding box
+	std::pair<Vector, Vector> boundingBox = mesh.getBoundingBox();
+	std::cout << "Bounding box:" << std::endl;
+	std::cout << boundingBox.first.toString() << std::endl;
+	std::cout << boundingBox.second.toString() << std::endl;
+
 
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1));
 	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 1, 1));
@@ -116,10 +130,10 @@ int main()
 	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
 	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
 
-	scene.addObject(sphere1);
-	scene.addObject(sphere2);
-	scene.addObject(sphere3);
-	// scene.addObject(mesh);
+	// scene.addObject(sphere1);
+	// scene.addObject(sphere2);
+	// scene.addObject(sphere3);
+	scene.addObject(mesh);
 	scene.addObject(floor);
 	scene.addObject(ceiling);
 	scene.addObject(wallLeft);
@@ -140,9 +154,9 @@ int main()
 
 				double di, dj;
 				boxMuller(0.2, di, dj);
-				Vector vector(j - W / 2 + 0.5 + dj, -i + H / 2 - 0.5 + di, -W / (2 * std::tan(alpha / 2)));
-				Ray ray(O, vector.normalized());
-				color += scene.getColor(ray, 5);
+				Vector direction(j - W / 2 + 0.5 + dj, -i + H / 2 - 0.5 + di, -W / (2 * std::tan(alpha / 2)));
+				Ray ray(O, direction.normalized());
+				color += scene.getColor(ray, 1);
 			}
 			color /= nbRays;
 

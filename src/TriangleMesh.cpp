@@ -2,8 +2,9 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <iostream>
 
-double TriangleMesh::intersect(Ray ray, Vector &P, Vector &N) const
+double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
 {
     double tmin = 1e99;
     for (int i = 0; i < indices.size(); i++)
@@ -16,28 +17,46 @@ double TriangleMesh::intersect(Ray ray, Vector &P, Vector &N) const
 
         Vector e1 = v1 - v0;
         Vector e2 = v2 - v0;
-
         // normale
-        Vector Ni = cross(v1 - v0, v2 - v0).normalized();
-
+        Vector Ni = cross(e1, e2);
         // calcul de l'intersection
-        double t = dot(v0 - ray.origin, N) / dot(ray.direction, N);
-        if (t < 0)
+        double divisor = dot(ray.direction, Ni);
+        if (divisor == 0)
         {
-            // le triangle est derrière le rayon
+            // rayon parallèle au triangle
             continue;
         }
-        double beta = dot(e2, cross(ray.direction - v0, ray.direction)) / dot(ray.direction, N);
-        double gamma = -dot(e1, cross(v0 - ray.origin, ray.direction)) / dot(ray.direction, N);
+        double t = dot(v0 - ray.origin, Ni) / divisor;
+    
+        if (t < 0)
+        {
+            // point d'intersection derrière le rayon
+            continue;
+        }
+        Vector crossNumerator = cross(v0 - ray.origin, ray.direction);
+        double beta = dot(e2, crossNumerator) / divisor;
+        double gamma = -dot(e1, crossNumerator) / divisor;
 
         // conditions d'intersection
         if (beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < tmin)
         {
             tmin = t;
-            N = Ni;
+            P = ray.origin + ray.direction * t;
+            N = Ni.normalized();
         }
     }
     return tmin;
+}
+
+Vector TriangleMesh::getBarycenter() const
+{
+    Vector barycenter;
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        barycenter = barycenter + vertices[i];
+    }
+    barycenter = barycenter / vertices.size();
+    return barycenter;
 }
 
 void TriangleMesh::translate(Vector t)
@@ -50,10 +69,32 @@ void TriangleMesh::translate(Vector t)
 
 void TriangleMesh::scale(double s)
 {
+    Vector barycenter = getBarycenter();
     for (int i = 0; i < vertices.size(); i++)
     {
-        vertices[i] = vertices[i] * s;
+        vertices[i] = barycenter + (vertices[i] - barycenter) * s;
     }
+}
+
+std::pair<Vector, Vector> TriangleMesh::getBoundingBox() const
+{
+    Vector min = vertices[0];
+    Vector max = vertices[0];
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertices[i][j] < min[j])
+            {
+                min[j] = vertices[i][j];
+            }
+            if (vertices[i][j] > max[j])
+            {
+                max[j] = vertices[i][j];
+            }
+        }
+    }
+    return std::make_pair(min, max);
 }
 
 void TriangleMesh::readOBJ(const char *obj)

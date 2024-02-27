@@ -20,7 +20,7 @@ Sphere::Sphere(
 {
 }
 
-double Sphere::intersect(Ray ray, Vector &P, Vector &N) const
+double Sphere::intersect(Ray &ray, Vector &P, Vector &N) const
 {
     double a = 1;
     double b = 2 * dot(ray.direction, ray.origin - center);

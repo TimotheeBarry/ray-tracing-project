@@ -3,6 +3,7 @@
 #include "../include/Constants.hpp"
 #include "../include/Sphere.hpp"
 #include "../include/LightSource.hpp"
+#include "../include/TriangleMesh.hpp"
 #include <cmath>
 #include <iostream>
 
@@ -43,7 +44,6 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
     double t;
     if (this->intersect(ray, P, N, intersectIndex, t))
     {
-
         const Object *object = objects[intersectIndex];
 
         // Si on a tapé une source de lumière
@@ -114,6 +114,7 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
 
                     // Contribution directe
                     for (size_t i = 0; i < objects.size(); i++)
+                    {
                         if (LightSource *light = dynamic_cast<LightSource *>(const_cast<Object *>(objects[i])))
                         {
                             Vector axisVector = (P - light->center).normalized();
@@ -131,6 +132,7 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                             }
                             diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * sphere->albedo;
                         }
+                    }
                 }
 
                 // réflexion
@@ -145,6 +147,38 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
 
                 return diffusedColor + indirectColor;
             }
+        }
+        else if (TriangleMesh *mesh = dynamic_cast<TriangleMesh *>(const_cast<Object *>(object)))
+        {
+            Vector indirectColor(0, 0, 0), diffusedColor(0, 0, 0);
+
+            // contribution indirecte
+            Vector randomVector = N.generateRandomCosineVector();
+            Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
+            indirectColor = this->getColor(randomRay, depth - 1, true) * Vector(1, 1, 1); // TODO: replace with texture
+
+            // Contribution directe
+            for (size_t i = 0; i < objects.size(); i++)
+            {
+                if (LightSource *light = dynamic_cast<LightSource *>(const_cast<Object *>(objects[i])))
+                {
+                    Vector axisVector = (P - light->center).normalized();
+                    Vector randomVector = (P - light->center).generateRandomCosineVector().normalized();
+                    Vector randomLightSource = randomVector * light->radius + light->center;
+                    Vector wi = (randomLightSource - P).normalized();
+                    double lightDistanceSquared = (randomLightSource - P).norm2();
+                    Ray lightRay(P + N * EPSILON, wi);
+                    Vector Plight, Nlight;
+                    int objectIndex;
+                    double tlight;
+                    if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1 - EPSILON))
+                    {
+                        continue;
+                    }
+                    diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * Vector(1, 1, 1); // TODO: replace with texture
+                }
+            }
+            return diffusedColor + indirectColor;
         }
     }
     return Vector(0, 0, 0);
