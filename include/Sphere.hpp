@@ -3,8 +3,9 @@
 #include <tuple>
 #include "Vector.hpp"
 #include "Ray.hpp"
+#include "Object.hpp"
 
-class Sphere
+class Sphere: public Object
 {
 public:
     Vector center;
@@ -24,7 +25,6 @@ public:
            double refractiveIndex = 1.0,
            double lightIntensity = 0.0);
 
-    double intersectionDistance(Ray ray);
+    double intersect(Ray ray, Vector &P, Vector &N) const override;
 
-    std::tuple<Vector, Vector> getRandomPonctualLight(const Vector &P) const;
 };

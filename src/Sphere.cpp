@@ -20,7 +20,7 @@ Sphere::Sphere(
 {
 }
 
-double Sphere::intersectionDistance(Ray ray)
+double Sphere::intersect(Ray ray, Vector &P, Vector &N) const
 {
     double a = 1;
     double b = 2 * dot(ray.direction, ray.origin - center);
@@ -40,14 +40,8 @@ double Sphere::intersectionDistance(Ray ray)
     }
 
     double t = t1 < t2 ? t1 : t2;
+    P = ray.origin + ray.direction * t;
+    N = (P - center).normalized();
     return t;
 }
 
-std::tuple<Vector, Vector> Sphere::getRandomPonctualLight(const Vector &P) const
-{
-    Vector N = (P - center).normalized();
-    Vector randomVector = N.generateRandomCosineVector();
-    randomVector.normalize();
-
-    return std::make_tuple(randomVector, N);
-}

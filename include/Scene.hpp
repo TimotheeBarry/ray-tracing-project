@@ -8,13 +8,11 @@
 class Scene
 {
 public:
-    std::vector<Sphere> spheres;
+    std::vector<const Object*> objects;
 
-    void addSphere(Sphere s);
+    void addObject(const Object &obj);
 
     bool intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t);
-
-    // double lightVisibility(Vector &P, Vector &L);
 
     Vector getColor(Ray &ray, int depth, bool isIndirect = false);
 

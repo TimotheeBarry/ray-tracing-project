@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-double TriangleMesh::intersect(Ray ray, Vector &N)
+double TriangleMesh::intersect(Ray ray, Vector &P, Vector &N) const
 {
     double tmin = 1e99;
     for (int i = 0; i < indices.size(); i++)

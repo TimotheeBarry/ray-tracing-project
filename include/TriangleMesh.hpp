@@ -25,7 +25,7 @@ public:
 
     void translate(Vector t);
 
-    double intersect(Ray ray, Vector &N) override;
+    double intersect(Ray ray, Vector &P, Vector &N) const override;
 
     std::vector<TriangleIndices> indices;
     std::vector<Vector> vertices;
