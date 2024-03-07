@@ -16,6 +16,7 @@
 #include "../include/Constants.hpp"
 #include "../include/TriangleMesh.hpp"
 #include "../include/LightSource.hpp"
+#include "../include/Camera.hpp"
 
 #include <iostream>
 
@@ -86,16 +87,14 @@
 int main()
 {
 	bool showProgress = true;
-	int s = 256;
+	int s = 512;
+
 	int W = s;
 	int H = s;
-
-	double alpha = 80 * (PI) / 180;
-	const int nbRays = 3;
+	Camera camera(Vector(0, 0, 55),  W, H, 80, 1, 55);
+	const int nbRays = 20;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
-
-	Vector O(0, 0, 55); // camera origin
 
 	Scene scene = Scene();
 	LightSource lightSource(Vector(-10, 20, 40), 5, 1e9);
@@ -110,11 +109,7 @@ int main()
 	mesh.readOBJ("data/cat.obj");
 	Vector barycenter = mesh.getBarycenter();
 	mesh.translate(Vector(0, 0, 0) - barycenter);
-	mesh.scale(0.03);
-	// mesh.vertices.push_back(Vector(-10, 0, -10));
-	// mesh.vertices.push_back(Vector(10, 0, 10));
-	// mesh.vertices.push_back(Vector(0, 10, 0));
-	// mesh.indices.push_back(TriangleIndices(0, 1, 2));
+	mesh.scale(0.05);
 
 	// get bounding box
 	std::pair<Vector, Vector> boundingBox = mesh.getBoundingBox();
@@ -122,9 +117,8 @@ int main()
 	std::cout << boundingBox.first.toString() << std::endl;
 	std::cout << boundingBox.second.toString() << std::endl;
 
-
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1));
-	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 1, 1));
+	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0, 0));
 	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 20), 10000, Vector(0, 1, 1));
 	Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, Vector(1, 0, 1), 0.0);
 	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
@@ -151,11 +145,7 @@ int main()
 			double di, dj;
 			for (int k = 0; k < nbRays; k++)
 			{
-
-				double di, dj;
-				boxMuller(0.2, di, dj);
-				Vector direction(j - W / 2 + 0.5 + dj, -i + H / 2 - 0.5 + di, -W / (2 * std::tan(alpha / 2)));
-				Ray ray(O, direction.normalized());
+				Ray ray = camera.launchRay(i, j);
 				color += scene.getColor(ray, 1);
 			}
 			color /= nbRays;
