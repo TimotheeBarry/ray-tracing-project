@@ -14,7 +14,7 @@ Vector gammaCorrection(Vector color)
 
 Vector computeColor(Vector albedo, Vector L, Vector N, double intensity, double lightVisibility)
 {
-	return lightVisibility * albedo * intensity * (std::max(0., dot(L.normalized(), N)) / (4 * sqr(PI) * L.norm2()));
+	return lightVisibility * albedo * intensity * (std::max(0., dot(L.normalized(), N)) / (4 * sqr(PI) * L.normSquared()));
 }
 
 std::vector<unsigned char> subSampleImage(std::vector<unsigned char> image, int W, int H, int subSamplingFactor)

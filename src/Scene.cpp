@@ -32,6 +32,25 @@ bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &
     return intersect;
 }
 
+// méthode qui renvoie true si le rayon intersecte un objet, sans calculer le point d'intersection
+// utilisée pour les ombres (plus rapide)
+bool Scene::intersectObjectOnly(Ray &ray)
+{
+    for (size_t i = 0; i < objects.size(); i++)
+    {
+        // si l'objet est une lightsource, on ne la compte pas
+        if (LightSource *light = dynamic_cast<LightSource *>(const_cast<Object *>(objects[i])))
+        {
+            continue;
+        }
+        if (objects[i]->fastIntersect(ray))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
 {
     if (depth < 0)
@@ -121,12 +140,13 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                             Vector randomVector = (P - light->center).generateRandomCosineVector().normalized();
                             Vector randomLightSource = randomVector * light->radius + light->center;
                             Vector wi = (randomLightSource - P).normalized();
-                            double lightDistanceSquared = (randomLightSource - P).norm2();
-                            Ray lightRay(P + N * EPSILON, wi);
-                            Vector Plight, Nlight;
-                            int objectIndex;
-                            double tlight;
-                            if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1 - EPSILON))
+                            double lightDistanceSquared = (randomLightSource - P).normSquared();
+                            Ray lightRay(P + N * EPSILON, wi, sqrt(lightDistanceSquared));
+                            // Vector Plight, Nlight;
+                            // int objectIndex;
+                            // double tlight;
+                            // if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1 - EPSILON))
+                            if (this->intersectObjectOnly(lightRay))
                             {
                                 continue;
                             }
@@ -166,12 +186,13 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                     Vector randomVector = (P - light->center).generateRandomCosineVector().normalized();
                     Vector randomLightSource = randomVector * light->radius + light->center;
                     Vector wi = (randomLightSource - P).normalized();
-                    double lightDistanceSquared = (randomLightSource - P).norm2();
-                    Ray lightRay(P + N * EPSILON, wi);
-                    Vector Plight, Nlight;
-                    int objectIndex;
-                    double tlight;
-                    if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1 - EPSILON))
+                    double lightDistanceSquared = (randomLightSource - P).normSquared();
+                    Ray lightRay(P + N * EPSILON, wi, sqrt(lightDistanceSquared));
+                    // Vector Plight, Nlight;
+                    // int objectIndex;
+                    // double tlight;
+                    // if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1 - EPSILON))
+                    if (this->intersectObjectOnly(lightRay))
                     {
                         continue;
                     }

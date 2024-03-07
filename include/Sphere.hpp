@@ -5,7 +5,7 @@
 #include "Ray.hpp"
 #include "Object.hpp"
 
-class Sphere: public Object
+class Sphere : public Object
 {
 public:
     Vector center;
@@ -26,5 +26,5 @@ public:
            double lightIntensity = 0.0);
 
     double intersect(Ray &ray, Vector &P, Vector &N) const override;
-
+    bool fastIntersect(Ray &ray) const override;
 };

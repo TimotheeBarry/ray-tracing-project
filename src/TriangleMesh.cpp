@@ -27,7 +27,7 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
             continue;
         }
         double t = dot(v0 - ray.origin, Ni) / divisor;
-    
+
         if (t < 0)
         {
             // point d'intersection derrière le rayon
@@ -46,6 +46,47 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
         }
     }
     return tmin;
+}
+
+bool TriangleMesh::fastIntersect(Ray &ray) const
+{
+    for (int i = 0; i < indices.size(); i++)
+    {
+        TriangleIndices triangleIndices = indices[i];
+        // sommets du triangle
+        Vector v0 = vertices[triangleIndices.vtxi];
+        Vector v1 = vertices[triangleIndices.vtxj];
+        Vector v2 = vertices[triangleIndices.vtxk];
+
+        Vector e1 = v1 - v0;
+        Vector e2 = v2 - v0;
+        // normale
+        Vector Ni = cross(e1, e2);
+        // calcul de l'intersection
+        double divisor = dot(ray.direction, Ni);
+        if (divisor == 0)
+        {
+            // rayon parallèle au triangle
+            continue;
+        }
+        double t = dot(v0 - ray.origin, Ni) / divisor;
+
+        if (t < 0 || t > ray.length)
+        {
+            // point d'intersection derrière le rayon
+            continue;
+        }
+        Vector crossNumerator = cross(v0 - ray.origin, ray.direction);
+        double beta = dot(e2, crossNumerator) / divisor;
+        double gamma = -dot(e1, crossNumerator) / divisor;
+
+        // conditions d'intersection
+        if (beta >= 0 && gamma >= 0 && beta + gamma <= 1)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 Vector TriangleMesh::getBarycenter() const

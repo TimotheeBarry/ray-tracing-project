@@ -10,7 +10,8 @@ public:
     double operator[](int i) const;
     Vector &operator+=(const Vector &v);
     Vector operator/=(double b);
-    double norm2() const;
+    double normSquared() const;
+    double norm() const;
     Vector normalized();
     void normalize();
     void clip(double a, double b);

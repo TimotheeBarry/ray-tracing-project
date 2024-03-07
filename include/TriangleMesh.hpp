@@ -27,6 +27,8 @@ public:
 
     double intersect(Ray &ray, Vector &P, Vector &N) const override;
 
+    bool fastIntersect(Ray &ray) const override;
+
     Vector getBarycenter() const;
 
     std::pair<Vector, Vector> getBoundingBox() const;

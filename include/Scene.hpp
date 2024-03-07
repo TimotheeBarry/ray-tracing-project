@@ -14,8 +14,9 @@ public:
 
     bool intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t);
 
-    Vector getColor(Ray &ray, int depth, bool isIndirect = false);
+    bool intersectObjectOnly(Ray &ray);
 
+    Vector getColor(Ray &ray, int depth, bool isIndirect = false);
 };
 
 

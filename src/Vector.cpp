@@ -32,20 +32,25 @@ Vector Vector::operator/=(double b)
     return *this;
 }
 
-double Vector::norm2() const
+double Vector::normSquared() const
 {
     return sqr(coord[0]) + sqr(coord[1]) + sqr(coord[2]);
 }
 
+double Vector::norm() const
+{
+    return sqrt(normSquared());
+}
+
 Vector Vector::normalized()
 {
-    double norm = sqrt(norm2());
+    double norm = sqrt(normSquared());
     return Vector(coord[0] / norm, coord[1] / norm, coord[2] / norm);
 }
 
 void Vector::normalize()
 {
-    double norm = sqrt(norm2());
+    double norm = sqrt(normSquared());
     coord[0] /= norm;
     coord[1] /= norm;
     coord[2] /= norm;
