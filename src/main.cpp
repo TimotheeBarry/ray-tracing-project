@@ -17,6 +17,7 @@
 #include "../include/TriangleMesh.hpp"
 #include "../include/LightSource.hpp"
 #include "../include/Camera.hpp"
+#include "../include/BoundingBox.hpp"
 
 #include <iostream>
 
@@ -91,8 +92,8 @@ int main()
 
 	int W = s;
 	int H = s;
-	Camera camera(Vector(0, 0, 55),  W, H, 80, 1, 55);
-	const int nbRays = 20;
+	Camera camera(Vector(0, 0, 55), W, H, 80, 1, 55);
+	const int nbRays = 10;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -105,35 +106,32 @@ int main()
 	Sphere sphere2(Vector(30, 0, 12), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
 	Sphere sphere3(Vector(-30, 0, 12), 10, Vector(1, 1, 1), 1.0);			// sphere gauche
 
-	TriangleMesh mesh = TriangleMesh();
-	mesh.readOBJ("data/cat.obj");
-	Vector barycenter = mesh.getBarycenter();
-	mesh.translate(Vector(0, 0, 0) - barycenter);
-	mesh.scale(0.05);
-
-	// get bounding box
-	std::pair<Vector, Vector> boundingBox = mesh.getBoundingBox();
-	std::cout << "Bounding box:" << std::endl;
-	std::cout << boundingBox.first.toString() << std::endl;
-	std::cout << boundingBox.second.toString() << std::endl;
-
-	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1));
+	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 0));
 	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0, 0));
 	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 20), 10000, Vector(0, 1, 1));
 	Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, Vector(1, 0, 1), 0.0);
 	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
 	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
 
+	TriangleMesh mesh = TriangleMesh();
+	mesh.readOBJ("data/cat.obj");
+	Vector barycenter = mesh.getBarycenter();
+	mesh.translate(Vector(0, 0, 0) - barycenter);
+	mesh.scale(0.075);
+	// move so that the bottom of the mesh is on the floor
+	mesh.translate(Vector(0, floor.center[1] + floor.radius - mesh.bbox.min[1], 0));
+	mesh.rotate(-PI / 3, Vector(0, 1, 0));
+
 	// scene.addObject(sphere1);
 	// scene.addObject(sphere2);
 	// scene.addObject(sphere3);
-	scene.addObject(mesh);
 	scene.addObject(floor);
 	scene.addObject(ceiling);
 	scene.addObject(wallLeft);
 	scene.addObject(wallRight);
 	scene.addObject(wallFront);
 	scene.addObject(wallBack);
+	scene.addObject(mesh);
 
 #pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++)

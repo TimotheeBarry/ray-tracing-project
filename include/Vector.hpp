@@ -16,7 +16,8 @@ public:
     void normalize();
     void clip(double a, double b);
     Vector generateRandomCosineVector();
-    std::string toString();
+    std::string toString() const;
+    Vector rotate(double angle, const Vector &axis);
 
     double coord[3];
 };

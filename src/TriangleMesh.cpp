@@ -6,6 +6,13 @@
 
 double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
 {
+
+    // vérifie premièrement si le rayon intersecte la bounding box
+    if (!bbox.intersect(ray))
+    {
+        return -1;
+    }
+
     double tmin = 1e99;
     for (int i = 0; i < indices.size(); i++)
     {
@@ -50,6 +57,12 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
 
 bool TriangleMesh::fastIntersect(Ray &ray) const
 {
+    // vérifie premièrement si le rayon intersecte la bounding box
+    if (!bbox.intersect(ray))
+    {
+        return false;
+    }
+
     for (int i = 0; i < indices.size(); i++)
     {
         TriangleIndices triangleIndices = indices[i];
@@ -106,6 +119,18 @@ void TriangleMesh::translate(Vector t)
     {
         vertices[i] = vertices[i] + t;
     }
+    bbox.translate(t);
+}
+
+void TriangleMesh::rotate(double angle, Vector axis)
+{
+    Vector barycenter = getBarycenter();
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        vertices[i] = barycenter + (vertices[i] - barycenter).rotate(angle, axis);
+    }
+    // On doit recacluler la bounding box après rotation
+    computeBoundingBox();
 }
 
 void TriangleMesh::scale(double s)
@@ -115,9 +140,10 @@ void TriangleMesh::scale(double s)
     {
         vertices[i] = barycenter + (vertices[i] - barycenter) * s;
     }
+    bbox.scale(s, barycenter);
 }
 
-std::pair<Vector, Vector> TriangleMesh::getBoundingBox() const
+BoundingBox TriangleMesh::getBoundingBox() const
 {
     Vector min = vertices[0];
     Vector max = vertices[0];
@@ -135,7 +161,12 @@ std::pair<Vector, Vector> TriangleMesh::getBoundingBox() const
             }
         }
     }
-    return std::make_pair(min, max);
+    return BoundingBox(min, max);
+}
+
+void TriangleMesh::computeBoundingBox()
+{
+    bbox = getBoundingBox();
 }
 
 void TriangleMesh::readOBJ(const char *obj)
@@ -485,4 +516,6 @@ void TriangleMesh::readOBJ(const char *obj)
         }
     }
     fclose(f);
+    // compute bounding box at the end of the loading
+    computeBoundingBox();
 };

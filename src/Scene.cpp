@@ -142,10 +142,6 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                             Vector wi = (randomLightSource - P).normalized();
                             double lightDistanceSquared = (randomLightSource - P).normSquared();
                             Ray lightRay(P + N * EPSILON, wi, sqrt(lightDistanceSquared));
-                            // Vector Plight, Nlight;
-                            // int objectIndex;
-                            // double tlight;
-                            // if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1 - EPSILON))
                             if (this->intersectObjectOnly(lightRay))
                             {
                                 continue;

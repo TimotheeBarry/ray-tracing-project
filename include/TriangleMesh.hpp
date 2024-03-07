@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "Object.hpp"
+#include "BoundingBox.hpp"
 
 class TriangleIndices
 {
@@ -19,23 +20,22 @@ public:
     ~TriangleMesh() {}
     TriangleMesh(){};
 
-    void readOBJ(const char *obj);
-
-    void scale(double s);
-
-    void translate(Vector t);
-
-    double intersect(Ray &ray, Vector &P, Vector &N) const override;
-
-    bool fastIntersect(Ray &ray) const override;
-
-    Vector getBarycenter() const;
-
-    std::pair<Vector, Vector> getBoundingBox() const;
-
     std::vector<TriangleIndices> indices;
     std::vector<Vector> vertices;
     std::vector<Vector> normals;
     std::vector<Vector> uvs;
     std::vector<Vector> vertexcolors;
+
+    void readOBJ(const char *obj);
+    void scale(double s);
+    void translate(Vector t);
+    void rotate(double angle, Vector axis);
+    double intersect(Ray &ray, Vector &P, Vector &N) const override;
+    bool fastIntersect(Ray &ray) const override;
+    Vector getBarycenter() const;
+    BoundingBox getBoundingBox() const;
+    BoundingBox bbox;
+
+private:
+        void computeBoundingBox();
 };

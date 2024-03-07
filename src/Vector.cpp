@@ -78,7 +78,25 @@ Vector Vector::generateRandomCosineVector()
     return randomVector[0] * u + randomVector[1] * v + randomVector[2] * (*this);
 }
 
-std::string Vector::toString()
+Vector Vector::rotate(double angle, const Vector &axis)
+{
+    // rotation d'un vecteur autour d'un axe
+    double c = cos(angle);
+    double s = sin(angle);
+    double t = 1 - c;
+    double x = coord[0];
+    double y = coord[1];
+    double z = coord[2];
+    double u = axis[0];
+    double v = axis[1];
+    double w = axis[2];
+
+    return Vector((t * u * u + c) * x + (t * u * v - w * s) * y + (t * u * w + v * s) * z,
+                  (t * u * v + w * s) * x + (t * v * v + c) * y + (t * v * w - u * s) * z,
+                  (t * u * w - v * s) * x + (t * v * w + u * s) * y + (t * w * w + c) * z);
+}
+
+std::string Vector::toString() const
 {
     return "(" + std::to_string(coord[0]) + ", " + std::to_string(coord[1]) + ", " + std::to_string(coord[2]) + ")";
 }
