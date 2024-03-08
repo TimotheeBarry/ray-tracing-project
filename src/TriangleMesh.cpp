@@ -4,9 +4,9 @@
 #include <vector>
 #include <iostream>
 
+
 double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
 {
-
     // vérifie premièrement si le rayon intersecte la bounding box
     if (!bbox.intersect(ray))
     {
@@ -14,13 +14,15 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
     }
 
     double tmin = 1e99;
+
+    // std::cout << "intersectedIndices.size() = " << intersectedIndices.size() << std::endl;
     for (int i = 0; i < indices.size(); i++)
     {
-        TriangleIndices triangleIndices = indices[i];
+        const TriangleIndices &triangle = indices[i];
         // sommets du triangle
-        Vector v0 = vertices[triangleIndices.vtxi];
-        Vector v1 = vertices[triangleIndices.vtxj];
-        Vector v2 = vertices[triangleIndices.vtxk];
+        Vector v0 = vertices[triangle.vtxi];
+        Vector v1 = vertices[triangle.vtxj];
+        Vector v2 = vertices[triangle.vtxk];
 
         Vector e1 = v1 - v0;
         Vector e2 = v2 - v0;
@@ -65,11 +67,11 @@ bool TriangleMesh::fastIntersect(Ray &ray) const
 
     for (int i = 0; i < indices.size(); i++)
     {
-        TriangleIndices triangleIndices = indices[i];
+        TriangleIndices triangle = indices[i];
         // sommets du triangle
-        Vector v0 = vertices[triangleIndices.vtxi];
-        Vector v1 = vertices[triangleIndices.vtxj];
-        Vector v2 = vertices[triangleIndices.vtxk];
+        Vector v0 = vertices[triangle.vtxi];
+        Vector v1 = vertices[triangle.vtxj];
+        Vector v2 = vertices[triangle.vtxk];
 
         Vector e1 = v1 - v0;
         Vector e2 = v2 - v0;
@@ -129,8 +131,7 @@ void TriangleMesh::rotate(double angle, Vector axis)
     {
         vertices[i] = barycenter + (vertices[i] - barycenter).rotate(angle, axis);
     }
-    // On doit recacluler la bounding box après rotation
-    computeBoundingBox();
+    updateBoundingBox();
 }
 
 void TriangleMesh::scale(double s)
@@ -141,32 +142,6 @@ void TriangleMesh::scale(double s)
         vertices[i] = barycenter + (vertices[i] - barycenter) * s;
     }
     bbox.scale(s, barycenter);
-}
-
-BoundingBox TriangleMesh::getBoundingBox() const
-{
-    Vector min = vertices[0];
-    Vector max = vertices[0];
-    for (int i = 0; i < vertices.size(); i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            if (vertices[i][j] < min[j])
-            {
-                min[j] = vertices[i][j];
-            }
-            if (vertices[i][j] > max[j])
-            {
-                max[j] = vertices[i][j];
-            }
-        }
-    }
-    return BoundingBox(min, max);
-}
-
-void TriangleMesh::computeBoundingBox()
-{
-    bbox = getBoundingBox();
 }
 
 void TriangleMesh::readOBJ(const char *obj)
@@ -516,6 +491,10 @@ void TriangleMesh::readOBJ(const char *obj)
         }
     }
     fclose(f);
-    // compute bounding box at the end of the loading
-    computeBoundingBox();
+    updateBoundingBox();
 };
+
+void TriangleMesh::updateBoundingBox()
+{
+    bbox.computeDimensions(vertices);
+}

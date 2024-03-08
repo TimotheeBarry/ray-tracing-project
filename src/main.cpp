@@ -88,12 +88,12 @@
 int main()
 {
 	bool showProgress = true;
-	int s = 512;
+	int s = 256;
 
 	int W = s;
 	int H = s;
-	Camera camera(Vector(0, 0, 55), W, H, 80, 1, 55);
-	const int nbRays = 10;
+	Camera camera(Vector(0, 0, 55), W, H, 80, 0.5, 55);
+	const int nbRays = 5;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -102,9 +102,9 @@ int main()
 
 	scene.addObject(lightSource);
 
-	Sphere sphere1(Vector(0, 0, 0), 20, Vector(1, 1, 1));					// sphere centrale
-	Sphere sphere2(Vector(30, 0, 12), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
-	Sphere sphere3(Vector(-30, 0, 12), 10, Vector(1, 1, 1), 1.0);			// sphere gauche
+	Sphere sphere1(Vector(0, 0, 10), 10, Vector(1, 1, 1));					// sphere centrale
+	Sphere sphere2(Vector(20, 0, 20), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
+	Sphere sphere3(Vector(-20, 0, 0), 10, Vector(1, 1, 1), 1.0);			// sphere gauche
 
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 0));
 	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0, 0));
@@ -119,12 +119,14 @@ int main()
 	mesh.translate(Vector(0, 0, 0) - barycenter);
 	mesh.scale(0.075);
 	// move so that the bottom of the mesh is on the floor
+	std::cout << "min : " << mesh.bbox.min.toString() << std::endl;
+	std::cout << "max : " << mesh.bbox.max.toString() << std::endl;
+	std::cout << "center : " << barycenter.toString() << std::endl;
 	mesh.translate(Vector(0, floor.center[1] + floor.radius - mesh.bbox.min[1], 0));
 	mesh.rotate(-PI / 3, Vector(0, 1, 0));
-
 	// scene.addObject(sphere1);
 	// scene.addObject(sphere2);
-	// scene.addObject(sphere3);
+	scene.addObject(sphere3);
 	scene.addObject(floor);
 	scene.addObject(ceiling);
 	scene.addObject(wallLeft);
@@ -144,7 +146,7 @@ int main()
 			for (int k = 0; k < nbRays; k++)
 			{
 				Ray ray = camera.launchRay(i, j);
-				color += scene.getColor(ray, 1);
+				color += scene.getColor(ray, 3);
 			}
 			color /= nbRays;
 

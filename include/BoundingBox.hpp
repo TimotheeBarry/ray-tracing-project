@@ -1,16 +1,20 @@
-# pragma once
+#pragma once
 
 #include "Vector.hpp"
 #include "Ray.hpp"
+#include "TriangleIndices.hpp"
+#include <vector>
+
+class TriangleIndices;
 
 class BoundingBox
 {
 public:
-    BoundingBox() : min(Vector()), max(Vector()) {}
-    BoundingBox(Vector min, Vector max) : min(min), max(max) {}
+    BoundingBox() : min(Vector()), max(Vector()){};
     Vector min, max;
+
     bool intersect(Ray &ray) const;
     void scale(double s, Vector &center);
     void translate(Vector &t);
-    void rotate(double angle, Vector &axis, Vector &center);
+    void computeDimensions(std::vector<Vector> &vertices);
 };

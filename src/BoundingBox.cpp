@@ -45,8 +45,20 @@ void BoundingBox::translate(Vector &t)
     max = max + t;
 };
 
-void BoundingBox::rotate(double angle, Vector &axis, Vector &center)
+void BoundingBox::computeDimensions(std::vector<Vector> &vertices)
 {
-    min = center + (min - center).rotate(angle, axis);
-    max = center + (max - center).rotate(angle, axis);
-};
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertices[i][j] < min[j])
+            {
+                min[j] = vertices[i][j];
+            }
+            if (vertices[i][j] > max[j])
+            {
+                max[j] = vertices[i][j];
+            }
+        }
+    }
+}
