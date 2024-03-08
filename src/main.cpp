@@ -88,12 +88,12 @@
 int main()
 {
 	bool showProgress = true;
-	int s = 512;
+	int s = 256;
 
 	int W = s;
 	int H = s;
 	Camera camera(Vector(0, 0, 55), W, H, 80, 1.5, 50);
-	const int nbRays = 36;
+	const int nbRays = 25;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -116,15 +116,16 @@ int main()
 	TriangleMesh mesh = TriangleMesh();
 	mesh.readOBJ("data/cat.obj");
 	Vector barycenter = mesh.getBarycenter();
+	mesh.reflectance = .5;
 	mesh.translate(Vector(0, 0, 0) - barycenter);
-	mesh.scale(0.075);
+	mesh.scale(1);
 	mesh.translate(Vector(0, floor.center[1] + floor.radius - mesh.bbox.min[1], 0));
 	mesh.rotate(-PI / 4, Vector(0, 1, 0));
 	mesh.initBVH();
 	// std::cout << mesh.bvh.printTree() << std::endl;
 	// scene.addObject(sphere1);
-	scene.addObject(sphere2);
-	scene.addObject(sphere3);
+	// scene.addObject(sphere2);
+	// scene.addObject(sphere3);
 	scene.addObject(floor);
 	scene.addObject(ceiling);
 	scene.addObject(wallLeft);
@@ -143,7 +144,7 @@ int main()
 			for (int k = 0; k < nbRays; k++)
 			{
 				Ray ray = camera.launchRay(i, j);
-				color += scene.getColor(ray, 5);
+				color += scene.getColor(ray, 6);
 			}
 			color /= nbRays;
 

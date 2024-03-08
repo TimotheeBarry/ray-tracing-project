@@ -184,16 +184,21 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                     Vector wi = (randomLightSource - P).normalized();
                     double lightDistanceSquared = (randomLightSource - P).normSquared();
                     Ray lightRay(P + N * EPSILON, wi, sqrt(lightDistanceSquared));
-                    // Vector Plight, Nlight;
-                    // int objectIndex;
-                    // double tlight;
-                    // if (this->intersect(lightRay, Plight, Nlight, objectIndex, tlight) && tlight * tlight < lightDistanceSquared * (1 - EPSILON))
                     if (this->intersectObjectOnly(lightRay))
                     {
                         continue;
                     }
                     diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * Vector(1, 1, 1); // TODO: replace with texture
                 }
+            }
+            // réflexion
+            if (mesh->reflectance > 0)
+            {
+                Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+                Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+                Vector reflectedColor = this->getColor(reflectedRay, depth - 1, isIndirect);
+
+                return (1 - mesh->reflectance) * (diffusedColor + indirectColor) + mesh->reflectance * reflectedColor;
             }
             return diffusedColor + indirectColor;
         }

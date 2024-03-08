@@ -19,7 +19,8 @@ public:
     std::vector<Vector> vertexcolors;
     BoundingBox bbox;
     BVH bvh;
-    int bvhMinTriangles = 5;
+    double reflectance = 0.0;
+    int bvhMinTriangles = 10;
 
     void readOBJ(const char *obj);
     void scale(double s);

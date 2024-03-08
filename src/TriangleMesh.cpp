@@ -59,7 +59,17 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
                     if (beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < tmin)
                     {
                         P = ray.origin + ray.direction * t;
-                        N = Ni.normalized();
+                        // lissage de phong
+                        double alpha = 1 - beta - gamma;
+                        if (triangle.ni == -1 || triangle.nj == -1 || triangle.nk == -1)
+                        {
+                            N = Ni;
+                        }
+                        else
+                        {
+                            N = normals[triangle.ni] * alpha + normals[triangle.nj] * beta + normals[triangle.nk] * gamma;
+                        }
+
                         tmin = t;
                     }
                 }
