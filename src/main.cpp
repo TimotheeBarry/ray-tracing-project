@@ -88,12 +88,12 @@
 int main()
 {
 	bool showProgress = true;
-	int s = 256;
+	int s = 512;
 
 	int W = s;
 	int H = s;
-	Camera camera(Vector(0, 0, 55), W, H, 80, 0.5, 55);
-	const int nbRays = 5;
+	Camera camera(Vector(0, 0, 55), W, H, 80, 1.5, 50);
+	const int nbRays = 36;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -118,14 +118,12 @@ int main()
 	Vector barycenter = mesh.getBarycenter();
 	mesh.translate(Vector(0, 0, 0) - barycenter);
 	mesh.scale(0.075);
-	// move so that the bottom of the mesh is on the floor
-	std::cout << "min : " << mesh.bbox.min.toString() << std::endl;
-	std::cout << "max : " << mesh.bbox.max.toString() << std::endl;
-	std::cout << "center : " << barycenter.toString() << std::endl;
 	mesh.translate(Vector(0, floor.center[1] + floor.radius - mesh.bbox.min[1], 0));
-	mesh.rotate(-PI / 3, Vector(0, 1, 0));
+	mesh.rotate(-PI / 4, Vector(0, 1, 0));
+	mesh.initBVH();
+	// std::cout << mesh.bvh.printTree() << std::endl;
 	// scene.addObject(sphere1);
-	// scene.addObject(sphere2);
+	scene.addObject(sphere2);
 	scene.addObject(sphere3);
 	scene.addObject(floor);
 	scene.addObject(ceiling);
@@ -138,7 +136,6 @@ int main()
 #pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++)
 	{
-
 		for (int j = 0; j < W; j++)
 		{
 			Vector color(0, 0, 0);
@@ -146,7 +143,7 @@ int main()
 			for (int k = 0; k < nbRays; k++)
 			{
 				Ray ray = camera.launchRay(i, j);
-				color += scene.getColor(ray, 3);
+				color += scene.getColor(ray, 5);
 			}
 			color /= nbRays;
 

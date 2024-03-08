@@ -3,105 +3,155 @@
 #include <string>
 #include <vector>
 #include <iostream>
-
+#include <stack>
 
 double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
 {
     // vérifie premièrement si le rayon intersecte la bounding box
-    if (!bbox.intersect(ray))
+    if (!bvh.bbox.intersect(ray))
     {
         return -1;
     }
-
-    double tmin = 1e99;
-
-    // std::cout << "intersectedIndices.size() = " << intersectedIndices.size() << std::endl;
-    for (int i = 0; i < indices.size(); i++)
+    else
     {
-        const TriangleIndices &triangle = indices[i];
-        // sommets du triangle
-        Vector v0 = vertices[triangle.vtxi];
-        Vector v1 = vertices[triangle.vtxj];
-        Vector v2 = vertices[triangle.vtxk];
-
-        Vector e1 = v1 - v0;
-        Vector e2 = v2 - v0;
-        // normale
-        Vector Ni = cross(e1, e2);
-        // calcul de l'intersection
-        double divisor = dot(ray.direction, Ni);
-        if (divisor == 0)
+        double tmin = 1e99;
+        // parcours en profondeur de l'arbre
+        std::stack<const BVH *> stack;
+        stack.push(&bvh);
+        while (!stack.empty())
         {
-            // rayon parallèle au triangle
-            continue;
-        }
-        double t = dot(v0 - ray.origin, Ni) / divisor;
+            const BoundingBox &bbox = stack.top()->bbox;
+            const BVH *node = stack.top();
+            stack.pop();
+            if (node->isLeaf)
+            {
+                for (int i = node->iMin; i <= node->iMax; i++)
+                {
+                    const TriangleIndices &triangle = indices[i];
+                    // sommets du triangle
+                    Vector v0 = vertices[triangle.vtxi];
+                    Vector v1 = vertices[triangle.vtxj];
+                    Vector v2 = vertices[triangle.vtxk];
 
-        if (t < 0)
-        {
-            // point d'intersection derrière le rayon
-            continue;
-        }
-        Vector crossNumerator = cross(v0 - ray.origin, ray.direction);
-        double beta = dot(e2, crossNumerator) / divisor;
-        double gamma = -dot(e1, crossNumerator) / divisor;
+                    Vector e1 = v1 - v0;
+                    Vector e2 = v2 - v0;
+                    // normale
+                    Vector Ni = cross(e1, e2);
+                    // calcul de l'intersection
+                    double divisor = dot(ray.direction, Ni);
+                    if (divisor == 0)
+                    {
+                        // rayon parallèle au triangle
+                        continue;
+                    }
+                    double t = dot(v0 - ray.origin, Ni) / divisor;
 
-        // conditions d'intersection
-        if (beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < tmin)
-        {
-            tmin = t;
-            P = ray.origin + ray.direction * t;
-            N = Ni.normalized();
+                    if (t < 0 || t > ray.length)
+                    {
+                        // point d'intersection derrière le rayon
+                        continue;
+                    }
+                    Vector crossNumerator = cross(v0 - ray.origin, ray.direction);
+                    double beta = dot(e2, crossNumerator) / divisor;
+                    double gamma = -dot(e1, crossNumerator) / divisor;
+
+                    // conditions d'intersection
+                    if (beta >= 0 && gamma >= 0 && beta + gamma <= 1 && t < tmin)
+                    {
+                        P = ray.origin + ray.direction * t;
+                        N = Ni.normalized();
+                        tmin = t;
+                    }
+                }
+            }
+            else
+            {
+                double t1, t2;
+                if (node->left->bbox.intersect(ray))
+                {
+                    stack.push(node->left);
+                }
+                if (node->right->bbox.intersect(ray))
+                {
+                    stack.push(node->right);
+                }
+            }
         }
+        return tmin;
     }
-    return tmin;
 }
 
 bool TriangleMesh::fastIntersect(Ray &ray) const
 {
     // vérifie premièrement si le rayon intersecte la bounding box
-    if (!bbox.intersect(ray))
+    if (!bvh.bbox.intersect(ray))
     {
         return false;
     }
-
-    for (int i = 0; i < indices.size(); i++)
+    else
     {
-        TriangleIndices triangle = indices[i];
-        // sommets du triangle
-        Vector v0 = vertices[triangle.vtxi];
-        Vector v1 = vertices[triangle.vtxj];
-        Vector v2 = vertices[triangle.vtxk];
-
-        Vector e1 = v1 - v0;
-        Vector e2 = v2 - v0;
-        // normale
-        Vector Ni = cross(e1, e2);
-        // calcul de l'intersection
-        double divisor = dot(ray.direction, Ni);
-        if (divisor == 0)
+        // parcours en profondeur de l'arbre
+        std::stack<const BVH *> stack;
+        stack.push(&bvh);
+        while (!stack.empty())
         {
-            // rayon parallèle au triangle
-            continue;
-        }
-        double t = dot(v0 - ray.origin, Ni) / divisor;
+            const BoundingBox &bbox = stack.top()->bbox;
+            const BVH *node = stack.top();
+            stack.pop();
+            if (node->isLeaf)
+            {
+                for (int i = node->iMin; i <= node->iMax; i++)
+                {
+                    const TriangleIndices &triangle = indices[i];
+                    // sommets du triangle
+                    Vector v0 = vertices[triangle.vtxi];
+                    Vector v1 = vertices[triangle.vtxj];
+                    Vector v2 = vertices[triangle.vtxk];
 
-        if (t < 0 || t > ray.length)
-        {
-            // point d'intersection derrière le rayon
-            continue;
-        }
-        Vector crossNumerator = cross(v0 - ray.origin, ray.direction);
-        double beta = dot(e2, crossNumerator) / divisor;
-        double gamma = -dot(e1, crossNumerator) / divisor;
+                    Vector e1 = v1 - v0;
+                    Vector e2 = v2 - v0;
+                    // normale
+                    Vector Ni = cross(e1, e2);
+                    // calcul de l'intersection
+                    double divisor = dot(ray.direction, Ni);
+                    if (divisor == 0)
+                    {
+                        // rayon parallèle au triangle
+                        continue;
+                    }
+                    double t = dot(v0 - ray.origin, Ni) / divisor;
 
-        // conditions d'intersection
-        if (beta >= 0 && gamma >= 0 && beta + gamma <= 1)
-        {
-            return true;
+                    if (t < 0 || t > ray.length)
+                    {
+                        // point d'intersection derrière le rayon
+                        continue;
+                    }
+                    Vector crossNumerator = cross(v0 - ray.origin, ray.direction);
+                    double beta = dot(e2, crossNumerator) / divisor;
+                    double gamma = -dot(e1, crossNumerator) / divisor;
+
+                    // conditions d'intersection
+                    if (beta >= 0 && gamma >= 0 && beta + gamma <= 1)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                double t1, t2;
+                if (node->left->bbox.intersect(ray))
+                {
+                    stack.push(node->left);
+                }
+                if (node->right->bbox.intersect(ray))
+                {
+                    stack.push(node->right);
+                }
+            }
         }
+        return false;
     }
-    return false;
 }
 
 Vector TriangleMesh::getBarycenter() const
@@ -131,7 +181,7 @@ void TriangleMesh::rotate(double angle, Vector axis)
     {
         vertices[i] = barycenter + (vertices[i] - barycenter).rotate(angle, axis);
     }
-    updateBoundingBox();
+    updateMainBoundingBox();
 }
 
 void TriangleMesh::scale(double s)
@@ -491,10 +541,125 @@ void TriangleMesh::readOBJ(const char *obj)
         }
     }
     fclose(f);
-    updateBoundingBox();
+    updateMainBoundingBox();
 };
 
-void TriangleMesh::updateBoundingBox()
+void TriangleMesh::updateBoundingBox(BoundingBox &bbox, int iMin, int iMax)
 {
-    bbox.computeDimensions(vertices);
+    bbox.min = Vector(1e99, 1e99, 1e99);
+    bbox.max = Vector(-1e99, -1e99, -1e99);
+    for (int i = iMin; i < iMax; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertices[indices[i].vtxi][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[indices[i].vtxi][j];
+            }
+            if (vertices[indices[i].vtxi][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[indices[i].vtxi][j];
+            }
+            if (vertices[indices[i].vtxj][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[indices[i].vtxj][j];
+            }
+            if (vertices[indices[i].vtxj][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[indices[i].vtxj][j];
+            }
+            if (vertices[indices[i].vtxk][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[indices[i].vtxk][j];
+            }
+            if (vertices[indices[i].vtxk][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[indices[i].vtxk][j];
+            }
+        }
+    }
+}
+
+void TriangleMesh::updateMainBoundingBox()
+{
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertices[i][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[i][j];
+            }
+            if (vertices[i][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[i][j];
+            }
+        }
+    }
+}
+
+double TriangleMesh::getTriangleCenterAlongAxis(int index, int axis) const
+{
+    const TriangleIndices &triangle = indices[index];
+    return (vertices[triangle.vtxi][axis] + vertices[triangle.vtxj][axis] + vertices[triangle.vtxk][axis]) / 3;
+}
+
+// construit la BVH avec start inclus, end exclus (indices des triangles)
+void TriangleMesh::buildBVH(BVH &node, int start, int end)
+{
+    // on met à jour le noeud
+    node.iMin = start;
+    node.iMax = end - 1;
+    updateBoundingBox(node.bbox, start, end);
+
+    // si on a le nombre minimal de triangles par bvh, on arrête
+    if (end - start <= bvhMinTriangles)
+    {
+        node.isLeaf = true;
+        return;
+    }
+
+    // Recherche de la dimension la plus étendue de la bbox
+    Vector diag = node.bbox.max - node.bbox.min;
+    int dim = 0;
+    for (int i = 1; i < 3; i++)
+    {
+        if (diag[i] > diag[dim])
+        {
+            dim = i;
+        }
+    }
+    // Définition du pivot
+    double leftPointer = node.iMin;
+    double rightPointer = node.iMax - 1;
+    double leftCenter = getTriangleCenterAlongAxis(leftPointer, dim);
+    double rightCenter = getTriangleCenterAlongAxis(rightPointer, dim);
+    // algorithm to sort the triangles along the axis with the pivot
+    while (leftPointer < rightPointer)
+    {
+        // Si les deux triangles sont bien placé, on avance le pointeur gauche
+        while (leftPointer < rightPointer && leftCenter <= rightCenter)
+        {
+            leftPointer++;
+            leftCenter = getTriangleCenterAlongAxis(leftPointer, dim);
+        }
+        // Si les deux triangles mal placés, on recule le pointeur droit et on swap
+        while (leftPointer < rightPointer && rightCenter < leftCenter)
+        {
+            std::swap(indices[leftPointer], indices[rightPointer]);
+            rightPointer--;
+            rightCenter = getTriangleCenterAlongAxis(rightPointer, dim);
+        }
+    }
+    node.left = new BVH();
+    node.right = new BVH();
+
+    buildBVH(*node.left, start, leftPointer);
+    buildBVH(*node.right, leftPointer, end);
+}
+
+void TriangleMesh::initBVH()
+{
+    bvh = BVH();
+    buildBVH(bvh, 0, indices.size());
 }

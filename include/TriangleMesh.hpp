@@ -4,6 +4,7 @@
 #include "Object.hpp"
 #include "BoundingBox.hpp"
 #include "TriangleIndices.hpp"
+#include "BVH.hpp"
 
 class TriangleMesh : public Object
 {
@@ -17,8 +18,8 @@ public:
     std::vector<Vector> uvs;
     std::vector<Vector> vertexcolors;
     BoundingBox bbox;
-    int bboxMaxDepth = 3;
-    int bboxMinTriangles = 2;
+    BVH bvh;
+    int bvhMinTriangles = 5;
 
     void readOBJ(const char *obj);
     void scale(double s);
@@ -27,6 +28,9 @@ public:
     double intersect(Ray &ray, Vector &P, Vector &N) const override;
     bool fastIntersect(Ray &ray) const override;
     Vector getBarycenter() const;
-    void updateBoundingBox();
-    void initializeBoundingBoxDimensions();
+    void updateBoundingBox(BoundingBox &bbox, int iMin, int iMax);
+    void updateMainBoundingBox();
+    double getTriangleCenterAlongAxis(int index, int axis) const;
+    void buildBVH(BVH &node, int iMin, int iMax);
+    void initBVH();
 };

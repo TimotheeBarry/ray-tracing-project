@@ -16,5 +16,5 @@ public:
     bool intersect(Ray &ray) const;
     void scale(double s, Vector &center);
     void translate(Vector &t);
-    void computeDimensions(std::vector<Vector> &vertices);
+    // void computeDimensions(std::vector<Vector> &vertices);
 };
