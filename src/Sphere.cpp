@@ -3,23 +3,6 @@
 #include "../include/Ray.hpp"
 #include <cmath>
 
-Sphere::Sphere(
-    const Vector &center,
-    double radius,
-    const Vector &albedo,
-    double reflectance,
-    double isTransparent,
-    double refractiveIndex,
-    double lightIntensity) : center(center),
-                             radius(radius),
-                             albedo(albedo),
-                             reflectance(reflectance),
-                             opacity(isTransparent),
-                             refractiveIndex(refractiveIndex),
-                             lightIntensity(lightIntensity)
-{
-}
-
 double Sphere::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) const
 {
     double a = 1;
@@ -42,7 +25,11 @@ double Sphere::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) const
     double t = t1 < t2 ? t1 : t2;
     P = ray.origin + ray.direction * t;
     N = (P - center).normalized();
-    albedo = this->albedo;
+    if (brdf != nullptr)
+    {
+        albedo = brdf->getAlbedo();
+    }
+
     return t;
 }
 

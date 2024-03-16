@@ -79,130 +79,122 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
 
         else if (Sphere *sphere = dynamic_cast<Sphere *>(const_cast<Object *>(object)))
         {
-            // Si la sphere est transparente
-            if (sphere->opacity < 1)
+            if (Transparent *brdf = dynamic_cast<Transparent *>(const_cast<BRDF *>(sphere->brdf)))
             {
-                // entrée ou sortie de la sphère
-                bool isEntering = dot(ray.direction, N) < 0;
-                double n1, n2;
-                if (isEntering)
-                {
-                    n1 = 1.0;
-                    n2 = sphere->refractiveIndex;
-                    N = (-1) * N;
-                }
-                else
-                {
-                    n1 = sphere->refractiveIndex;
-                    n2 = 1.0;
-                }
-                double k0 = sqr((n1 - n2) / (n1 + n2));
-
-                double R = k0 + (1 - k0) * std::pow(1 - std::abs(dot(ray.direction, N)), 5);
-                double T = 1 - R;
-
-                double n = n1 / n2;
-                double cosThetaI = dot(ray.direction, N);
-                Vector tN = std::sqrt(1 - sqr(n) * (1 - sqr(cosThetaI))) * N;
-
-                Vector tT = n * ray.direction;
-                // on choisit aléatoirement entre réflexion et transmission avec proba qui dépend des coefficients R et T
-                if (uniform(gen) < T)
-                {
-                    // transmission
-                    Ray ray = Ray(P + N * EPSILON, (tN + tT).normalized());
-                    return this->getColor(ray, depth - 1, isIndirect);
-                }
-                else
-                {
-                    // réflexion
-                    Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
-                    Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-                    return this->getColor(reflectedRay, depth - 1, isIndirect);
-                }
+                return getTransparentSphereColor(ray, P, N, depth, isIndirect, brdf->refractiveIndex);
             }
             else
             {
-                Vector indirectColor(0, 0, 0), diffusedColor(0, 0, 0);
-                // on calcule la contribution directe et indirecte que si la sphère n'est pas un miroir pur pour éviter les calculs inutiles
-                if (sphere->reflectance < 1)
+                if (Mirror *brdf = dynamic_cast<Mirror *>(const_cast<BRDF *>(sphere->brdf)))
                 {
-                    // contribution indirecte
-                    Vector randomVector = N.generateRandomCosineVector();
-                    Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
-                    indirectColor = this->getColor(randomRay, depth - 1, true) * albedo;
-
-                    // Contribution directe
-                    for (size_t i = 0; i < objects.size(); i++)
-                    {
-                        if (LightSource *light = dynamic_cast<LightSource *>(const_cast<Object *>(objects[i])))
-                        {
-                            Vector axisVector = (P - light->center).normalized();
-                            Vector randomVector = (P - light->center).generateRandomCosineVector().normalized();
-                            Vector randomLightSource = randomVector * light->radius + light->center;
-                            Vector wi = (randomLightSource - P).normalized();
-                            double lightDistanceSquared = (randomLightSource - P).normSquared();
-                            Ray lightRay(P + N * EPSILON, wi, sqrt(lightDistanceSquared));
-                            if (this->intersectObjectOnly(lightRay))
-                            {
-                                continue;
-                            }
-                            diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * albedo;
-                        }
-                    }
+                    // contribution from reflexion
+                    Vector reflexion = getReflectionColor(ray, P, N, depth, isIndirect);
+                    // contribution from diffusion (direct and indirect)
+                    Vector diffused = getDiffusedColor(ray, P, N, depth, isIndirect, albedo);
+                    return (1 - brdf->reflectance) * (diffused + reflexion) + brdf->reflectance * reflexion;
                 }
-
-                // réflexion
-                if (sphere->reflectance > 0)
+                else if (LambertianBRDF *brdf = dynamic_cast<LambertianBRDF *>(const_cast<BRDF *>(sphere->brdf)))
                 {
-                    Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
-                    Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-                    Vector reflectedColor = this->getColor(reflectedRay, depth - 1, isIndirect);
-
-                    return (1 - sphere->reflectance) * (diffusedColor + indirectColor) + sphere->reflectance * reflectedColor;
+                    return getDiffusedColor(ray, P, N, depth, isIndirect, albedo);
                 }
-
-                return diffusedColor + indirectColor;
+                else if (BlinnPhongBRDF *brdf = dynamic_cast<BlinnPhongBRDF *>(const_cast<BRDF *>(sphere->brdf)))
+                {
+                    // TODO
+                }
             }
         }
         else if (TriangleMesh *mesh = dynamic_cast<TriangleMesh *>(const_cast<Object *>(object)))
         {
-            Vector indirectColor(0, 0, 0), diffusedColor(0, 0, 0);
 
-            // contribution indirecte
-            Vector randomVector = N.generateRandomCosineVector();
-            Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
-            indirectColor = this->getColor(randomRay, depth - 1, true) * albedo;
-
-            // Contribution directe
-            for (size_t i = 0; i < objects.size(); i++)
-            {
-                if (LightSource *light = dynamic_cast<LightSource *>(const_cast<Object *>(objects[i])))
-                {
-                    Vector axisVector = (P - light->center).normalized();
-                    Vector randomVector = (P - light->center).generateRandomCosineVector().normalized();
-                    Vector randomLightSource = randomVector * light->radius + light->center;
-                    Vector wi = (randomLightSource - P).normalized();
-                    double lightDistanceSquared = (randomLightSource - P).normSquared();
-                    Ray lightRay(P + N * EPSILON, wi, sqrt(lightDistanceSquared));
-                    if (this->intersectObjectOnly(lightRay))
-                    {
-                        continue;
-                    }
-                    diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * albedo;
-                }
-            }
+            Vector color = getDiffusedColor(ray, P, N, depth, isIndirect, albedo);
             // réflexion
             if (mesh->reflectance > 0)
             {
-                Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
-                Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-                Vector reflectedColor = this->getColor(reflectedRay, depth - 1, isIndirect);
+                Vector reflectedColor = getReflectionColor(ray, P, N, depth, isIndirect);
 
-                return (1 - mesh->reflectance) * (diffusedColor + indirectColor) + mesh->reflectance * reflectedColor;
+                return (1 - mesh->reflectance) * color + mesh->reflectance * reflectedColor;
             }
-            return diffusedColor + indirectColor;
+            return color;
         }
     }
     return Vector(0, 0, 0);
+}
+
+Vector Scene::getIndirectColor(Vector &P, Vector &N, int depth, Vector &albedo)
+{
+    Vector randomVector = N.generateRandomCosineVector();
+    Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
+    return this->getColor(randomRay, depth - 1, true) * albedo;
+}
+
+Vector Scene::getTransparentSphereColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, double refractiveIndex)
+{
+    // entrée ou sortie de la sphère
+    bool isEntering = dot(ray.direction, N) < 0;
+    double n1, n2;
+    if (isEntering)
+    {
+        n1 = 1.0;
+        n2 = refractiveIndex;
+        N = (-1) * N;
+    }
+    else
+    {
+        n1 = refractiveIndex;
+        n2 = 1.0;
+    }
+    double k0 = sqr((n1 - n2) / (n1 + n2));
+
+    double R = k0 + (1 - k0) * std::pow(1 - std::abs(dot(ray.direction, N)), 5);
+    double T = 1 - R;
+
+    double n = n1 / n2;
+    double cosThetaI = dot(ray.direction, N);
+    Vector tN = std::sqrt(1 - sqr(n) * (1 - sqr(cosThetaI))) * N;
+
+    Vector tT = n * ray.direction;
+    // on choisit aléatoirement entre réflexion et transmission avec proba qui dépend des coefficients R et T
+    if (uniform(gen) < T)
+    {
+        // transmission
+        Ray ray = Ray(P + N * EPSILON, (tN + tT).normalized());
+        return this->getColor(ray, depth - 1, isIndirect);
+    }
+    else
+    {
+        // réflexion
+        Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+        Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+        return this->getColor(reflectedRay, depth - 1, isIndirect);
+    }
+}
+
+Vector Scene::getDiffusedColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, Vector &albedo)
+{
+    Vector color(0, 0, 0);
+    for (size_t i = 0; i < objects.size(); i++)
+    {
+        if (LightSource *light = dynamic_cast<LightSource *>(const_cast<Object *>(objects[i])))
+        {
+            Vector axisVector = (P - light->center).normalized();
+            Vector randomVector = (P - light->center).generateRandomCosineVector().normalized();
+            Vector randomLightSource = randomVector * light->radius + light->center;
+            Vector wi = (randomLightSource - P).normalized();
+            double lightDistanceSquared = (randomLightSource - P).normSquared();
+            Ray lightRay(P + N * EPSILON, wi, sqrt(lightDistanceSquared));
+            if (this->intersectObjectOnly(lightRay))
+            {
+                continue;
+            }
+            color += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * albedo;
+        }
+    }
+    return color + getIndirectColor(P, N, depth, albedo);
+}
+
+Vector Scene::getReflectionColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect)
+{
+    Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
+    Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
+    return this->getColor(reflectedRay, depth - 1, isIndirect);
 }

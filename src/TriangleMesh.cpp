@@ -229,6 +229,147 @@ void TriangleMesh::scale(double s)
     bbox.scale(s, barycenter);
 }
 
+void TriangleMesh::readPNGTexture(const char *filename)
+{
+    int channels, width, height;
+
+    unsigned char *data = stbi_load(filename, &width, &height, &channels, STBI_rgb);
+    if (!data)
+    {
+        // Handle error if image loading fails
+        throw std::runtime_error("Failed to load image.");
+    }
+
+    size_t dataSize = width * height * 3;
+
+    std::vector<unsigned char> texture(data, data + dataSize);
+    stbi_image_free(data);
+
+    textures.push_back(texture);
+    w.push_back(width);
+    h.push_back(height);
+}
+
+void TriangleMesh::updateBoundingBox(BoundingBox &bbox, int iMin, int iMax)
+{
+    bbox.min = Vector(1e99, 1e99, 1e99);
+    bbox.max = Vector(-1e99, -1e99, -1e99);
+    for (int i = iMin; i < iMax; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertices[indices[i].vtxi][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[indices[i].vtxi][j];
+            }
+            if (vertices[indices[i].vtxi][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[indices[i].vtxi][j];
+            }
+            if (vertices[indices[i].vtxj][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[indices[i].vtxj][j];
+            }
+            if (vertices[indices[i].vtxj][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[indices[i].vtxj][j];
+            }
+            if (vertices[indices[i].vtxk][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[indices[i].vtxk][j];
+            }
+            if (vertices[indices[i].vtxk][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[indices[i].vtxk][j];
+            }
+        }
+    }
+}
+
+void TriangleMesh::updateMainBoundingBox()
+{
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertices[i][j] < bbox.min[j])
+            {
+                bbox.min[j] = vertices[i][j];
+            }
+            if (vertices[i][j] > bbox.max[j])
+            {
+                bbox.max[j] = vertices[i][j];
+            }
+        }
+    }
+}
+
+double TriangleMesh::getTriangleCenterAlongAxis(int index, int axis) const
+{
+    const TriangleIndices &triangle = indices[index];
+    return (vertices[triangle.vtxi][axis] + vertices[triangle.vtxj][axis] + vertices[triangle.vtxk][axis]) / 3;
+}
+
+// construit la BVH avec start inclus, end exclus (indices des triangles)
+void TriangleMesh::buildBVH(BVH &node, int start, int end)
+{
+    // on met à jour le noeud
+    node.iMin = start;
+    node.iMax = end - 1;
+    updateBoundingBox(node.bbox, start, end);
+
+    // si on a le nombre minimal de triangles par bvh, on arrête
+    if (end - start <= bvhMinTriangles)
+    {
+        node.isLeaf = true;
+        return;
+    }
+
+    // Recherche de la dimension la plus étendue de la bbox
+    Vector diag = node.bbox.max - node.bbox.min;
+    int dim = 0;
+    for (int i = 1; i < 3; i++)
+    {
+        if (diag[i] > diag[dim])
+        {
+            dim = i;
+        }
+    }
+    // Définition du pivot
+    double leftPointer = node.iMin;
+    double rightPointer = node.iMax - 1;
+    double leftCenter = getTriangleCenterAlongAxis(leftPointer, dim);
+    double rightCenter = getTriangleCenterAlongAxis(rightPointer, dim);
+    // algorithm to sort the triangles along the axis with the pivot
+    while (leftPointer < rightPointer)
+    {
+        // Si les deux triangles sont bien placé, on avance le pointeur gauche
+        while (leftPointer < rightPointer && leftCenter <= rightCenter)
+        {
+            leftPointer++;
+            leftCenter = getTriangleCenterAlongAxis(leftPointer, dim);
+        }
+        // Si les deux triangles mal placés, on recule le pointeur droit et on swap
+        while (leftPointer < rightPointer && rightCenter < leftCenter)
+        {
+            std::swap(indices[leftPointer], indices[rightPointer]);
+            rightPointer--;
+            rightCenter = getTriangleCenterAlongAxis(rightPointer, dim);
+        }
+    }
+    node.left = new BVH();
+    node.right = new BVH();
+
+    buildBVH(*node.left, start, leftPointer);
+    buildBVH(*node.right, leftPointer, end);
+}
+
+void TriangleMesh::initBVH()
+{
+    bvh = BVH();
+    buildBVH(bvh, 0, indices.size());
+}
+
 void TriangleMesh::readOBJ(const char *obj)
 {
 
@@ -588,188 +729,3 @@ void TriangleMesh::readOBJ(const char *obj)
     fclose(f);
     updateMainBoundingBox();
 };
-
-void TriangleMesh::readPNGTexture(const char *filename)
-{
-    // int width, height, numChannels;
-    // unsigned char *data = stbi_load(filename, &width, &height, &numChannels, 3);
-
-    // if (!data || data == NULL)
-    // {
-    //     std::cerr << "Error: Couldn't open " << filename << " for reading.\n";
-    //     return;
-    // }
-
-    // std::vector<unsigned char> texture;
-
-    // // if 4 channels, we have to remove the alpha channel
-    // if (numChannels == 4)
-    // {
-    //     std::vector<unsigned char> texture;
-    //     int size = width * height * 3;
-    //     texture.resize(size);
-    //     for (int i = 0; i < width * height; i += 1)
-    //     {
-    //         texture[i * 3] = data[i * 4];
-    //         texture[i * 3 + 1] = data[i * 4 + 1];
-    //         texture[i * 3 + 2] = data[i * 4 + 2];
-    //     }
-    //     textures.push_back(texture);
-    // }
-    // else
-    // {
-    //     std::vector<unsigned char> texture;
-    //     int size = width * height * 3;
-    //     texture.resize(size);
-    //     for (int i = 0; i < width * height * numChannels; i += numChannels)
-    //     {
-    //         texture[i] = data[i];
-    //         texture[i + 1] = data[i + 1];
-    //         texture[i + 2] = data[i + 2];
-    //     }
-    //     textures.push_back(texture);
-    // }
-    // stbi_image_free(data);
-
-    // textures.push_back(texture);
-    // w.push_back(width);
-    // h.push_back(height);
-
-    int channels, width, height;
-
-    unsigned char *data = stbi_load(filename, &width, &height, &channels, STBI_rgb);
-    if (!data)
-    {
-        // Handle error if image loading fails
-        throw std::runtime_error("Failed to load image.");
-    }
-
-    size_t dataSize = width * height * 3;
-
-    std::vector<unsigned char> texture(data, data + dataSize);
-    stbi_image_free(data);
-
-    textures.push_back(texture);
-    w.push_back(width);
-    h.push_back(height);
-}
-
-void TriangleMesh::updateBoundingBox(BoundingBox &bbox, int iMin, int iMax)
-{
-    bbox.min = Vector(1e99, 1e99, 1e99);
-    bbox.max = Vector(-1e99, -1e99, -1e99);
-    for (int i = iMin; i < iMax; i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            if (vertices[indices[i].vtxi][j] < bbox.min[j])
-            {
-                bbox.min[j] = vertices[indices[i].vtxi][j];
-            }
-            if (vertices[indices[i].vtxi][j] > bbox.max[j])
-            {
-                bbox.max[j] = vertices[indices[i].vtxi][j];
-            }
-            if (vertices[indices[i].vtxj][j] < bbox.min[j])
-            {
-                bbox.min[j] = vertices[indices[i].vtxj][j];
-            }
-            if (vertices[indices[i].vtxj][j] > bbox.max[j])
-            {
-                bbox.max[j] = vertices[indices[i].vtxj][j];
-            }
-            if (vertices[indices[i].vtxk][j] < bbox.min[j])
-            {
-                bbox.min[j] = vertices[indices[i].vtxk][j];
-            }
-            if (vertices[indices[i].vtxk][j] > bbox.max[j])
-            {
-                bbox.max[j] = vertices[indices[i].vtxk][j];
-            }
-        }
-    }
-}
-
-void TriangleMesh::updateMainBoundingBox()
-{
-    for (int i = 0; i < vertices.size(); i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            if (vertices[i][j] < bbox.min[j])
-            {
-                bbox.min[j] = vertices[i][j];
-            }
-            if (vertices[i][j] > bbox.max[j])
-            {
-                bbox.max[j] = vertices[i][j];
-            }
-        }
-    }
-}
-
-double TriangleMesh::getTriangleCenterAlongAxis(int index, int axis) const
-{
-    const TriangleIndices &triangle = indices[index];
-    return (vertices[triangle.vtxi][axis] + vertices[triangle.vtxj][axis] + vertices[triangle.vtxk][axis]) / 3;
-}
-
-// construit la BVH avec start inclus, end exclus (indices des triangles)
-void TriangleMesh::buildBVH(BVH &node, int start, int end)
-{
-    // on met à jour le noeud
-    node.iMin = start;
-    node.iMax = end - 1;
-    updateBoundingBox(node.bbox, start, end);
-
-    // si on a le nombre minimal de triangles par bvh, on arrête
-    if (end - start <= bvhMinTriangles)
-    {
-        node.isLeaf = true;
-        return;
-    }
-
-    // Recherche de la dimension la plus étendue de la bbox
-    Vector diag = node.bbox.max - node.bbox.min;
-    int dim = 0;
-    for (int i = 1; i < 3; i++)
-    {
-        if (diag[i] > diag[dim])
-        {
-            dim = i;
-        }
-    }
-    // Définition du pivot
-    double leftPointer = node.iMin;
-    double rightPointer = node.iMax - 1;
-    double leftCenter = getTriangleCenterAlongAxis(leftPointer, dim);
-    double rightCenter = getTriangleCenterAlongAxis(rightPointer, dim);
-    // algorithm to sort the triangles along the axis with the pivot
-    while (leftPointer < rightPointer)
-    {
-        // Si les deux triangles sont bien placé, on avance le pointeur gauche
-        while (leftPointer < rightPointer && leftCenter <= rightCenter)
-        {
-            leftPointer++;
-            leftCenter = getTriangleCenterAlongAxis(leftPointer, dim);
-        }
-        // Si les deux triangles mal placés, on recule le pointeur droit et on swap
-        while (leftPointer < rightPointer && rightCenter < leftCenter)
-        {
-            std::swap(indices[leftPointer], indices[rightPointer]);
-            rightPointer--;
-            rightCenter = getTriangleCenterAlongAxis(rightPointer, dim);
-        }
-    }
-    node.left = new BVH();
-    node.right = new BVH();
-
-    buildBVH(*node.left, start, leftPointer);
-    buildBVH(*node.right, leftPointer, end);
-}
-
-void TriangleMesh::initBVH()
-{
-    bvh = BVH();
-    buildBVH(bvh, 0, indices.size());
-}

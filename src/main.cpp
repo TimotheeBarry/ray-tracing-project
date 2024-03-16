@@ -90,12 +90,12 @@ int main()
 {
 
 	bool showProgress = true;
-	int s = 512;
+	int s = 256;
 
 	int W = s;
 	int H = s;
 	Camera camera(Vector(0, 0, 55), W, H, 80, 0.5, 50);
-	const int nbRays = 50;
+	const int nbRays = 5;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -104,16 +104,32 @@ int main()
 
 	scene.addObject(lightSource);
 
-	Sphere sphere1(Vector(0, 0, 10), 10, Vector(1, 1, 1));					// sphere centrale
-	Sphere sphere2(Vector(20, 0, 20), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
-	Sphere sphere3(Vector(-20, 0, 0), 10, Vector(1, 1, 1), 1.0);			// sphere gauche
+	LambertianBRDF floorBRDF(Vector(1, 1, 0));
+	LambertianBRDF ceilingBRDF(Vector(1, 0, 0));
+	Mirror wallFrontBRDF(1.0, Vector(1, 0, 1));
+	LambertianBRDF wallBackBRDF(Vector(1, 0, 1));
+	LambertianBRDF wallLeftBRDF(Vector(0, 1, 0));
+	LambertianBRDF wallRightBRDF(Vector(0, 0, 1));
 
-	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 0));
-	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0, 0));
-	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 20), 10000, Vector(0, 1, 1));
-	Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, Vector(1, 0, 1), 0.0);
-	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
-	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
+	
+	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, &floorBRDF);
+	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, &ceilingBRDF);
+	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 40), 10000, &wallFrontBRDF);
+	Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, &wallBackBRDF);
+	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, &wallLeftBRDF);
+	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, &wallRightBRDF);
+
+
+	// Sphere sphere1(Vector(0, 0, 10), 10, Vector(1, 1, 1));					// sphere centrale
+	// Sphere sphere2(Vector(20, 0, 20), 10, Vector(1, 1, 1), 0.0, 0.0, 1.33); // sphere droite
+	// Sphere sphere3(Vector(-20, 0, 0), 10, Vector(1, 1, 1), 1.0);			// sphere gauche
+
+	// Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 0));
+	// Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0, 0));
+	// Sphere wallFront = Sphere(Vector(0, 0, -10000 - 20), 10000, Vector(0, 1, 1));
+	// Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, Vector(1, 0, 1), 0.0);
+	// Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0));
+	// Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1));
 
 	TriangleMesh mesh = TriangleMesh();
 	mesh.readOBJ("data/cat.obj");
@@ -148,7 +164,7 @@ int main()
 			for (int k = 0; k < nbRays; k++)
 			{
 				Ray ray = camera.launchRay(i, j);
-				color += scene.getColor(ray, 1);
+				color += scene.getColor(ray, 2);
 			}
 			color /= nbRays;
 
