@@ -9,6 +9,10 @@ bool BoundingBox::intersect(Ray &ray) const
     for (int i = 0; i < 3; i++)
     {
         // pour chaque cooordonnées, on calcule l'intervalle d'intersection avec le rayon
+        if (ray.direction[i] == 0)
+        {
+            continue;
+        }
         tMin = (min[i] - ray.origin[i]) / ray.direction[i];
         tMax = (max[i] - ray.origin[i]) / ray.direction[i];
         if (tMin > tMax)
@@ -44,21 +48,3 @@ void BoundingBox::translate(Vector &t)
     min = min + t;
     max = max + t;
 };
-
-// void BoundingBox::computeDimensions(std::vector<Vector> &vertices)
-// {
-//     for (int i = 0; i < vertices.size(); i++)
-//     {
-//         for (int j = 0; j < 3; j++)
-//         {
-//             if (vertices[i][j] < min[j])
-//             {
-//                 min[j] = vertices[i][j];
-//             }
-//             if (vertices[i][j] > max[j])
-//             {
-//                 max[j] = vertices[i][j];
-//             }
-//         }
-//     }
-// }

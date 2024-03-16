@@ -12,19 +12,20 @@ void Scene::addObject(const Object &obj)
     objects.push_back(&obj);
 }
 
-bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t)
+bool Scene::intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t, Vector &albedo)
 {
     t = 1e99;
     bool intersect = false;
-    Vector tempP, tempN;
+    Vector tempP, tempN, tempAlbedo;
     for (size_t i = 0; i < objects.size(); i++)
     {
-        double tMin = objects[i]->intersect(ray, tempP, tempN);
+        double tMin = objects[i]->intersect(ray, tempP, tempN, tempAlbedo);
         if (tMin > 0 && tMin < t)
         {
             t = tMin;
             P = tempP;
             N = tempN;
+            albedo = tempAlbedo;
             objectIndex = i;
             intersect = true;
         }
@@ -58,12 +59,12 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
         return Vector(0, 0, 0);
     }
 
-    Vector P, N;
-    int intersectIndex = -1;
+    Vector P, N, albedo;
+    int objectIndex = -1;
     double t;
-    if (this->intersect(ray, P, N, intersectIndex, t))
+    if (this->intersect(ray, P, N, objectIndex, t, albedo))
     {
-        const Object *object = objects[intersectIndex];
+        const Object *object = objects[objectIndex];
 
         // Si on a tapé une source de lumière
         if (LightSource *light = dynamic_cast<LightSource *>(const_cast<Object *>(object)))
@@ -129,7 +130,7 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                     // contribution indirecte
                     Vector randomVector = N.generateRandomCosineVector();
                     Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
-                    indirectColor = this->getColor(randomRay, depth - 1, true) * sphere->albedo;
+                    indirectColor = this->getColor(randomRay, depth - 1, true) * albedo;
 
                     // Contribution directe
                     for (size_t i = 0; i < objects.size(); i++)
@@ -146,7 +147,7 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                             {
                                 continue;
                             }
-                            diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * sphere->albedo;
+                            diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * albedo;
                         }
                     }
                 }
@@ -171,7 +172,7 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
             // contribution indirecte
             Vector randomVector = N.generateRandomCosineVector();
             Ray randomRay = Ray(P + N * EPSILON, randomVector.normalized());
-            indirectColor = this->getColor(randomRay, depth - 1, true) * Vector(1, 1, 1); // TODO: replace with texture
+            indirectColor = this->getColor(randomRay, depth - 1, true) * albedo;
 
             // Contribution directe
             for (size_t i = 0; i < objects.size(); i++)
@@ -188,7 +189,7 @@ Vector Scene::getColor(Ray &ray, int depth, bool isIndirect)
                     {
                         continue;
                     }
-                    diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * Vector(1, 1, 1); // TODO: replace with texture
+                    diffusedColor += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * albedo;
                 }
             }
             // réflexion

@@ -4,8 +4,10 @@
 #include <vector>
 #include <iostream>
 #include <stack>
+#include <cmath>
+#include "../stb/stb_image.h"
 
-double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
+double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) const
 {
     // vérifie premièrement si le rayon intersecte la bounding box
     if (!bvh.bbox.intersect(ray))
@@ -69,8 +71,31 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N) const
                         {
                             N = normals[triangle.ni] * alpha + normals[triangle.nj] * beta + normals[triangle.nk] * gamma;
                         }
-
                         tmin = t;
+                        // texture
+                        if (!textures.empty() && !textures[triangle.group].empty() && triangle.uvi != -1 && triangle.uvj != -1 && triangle.uvk != -1)
+                        {
+                            Vector uv = uvs[triangle.uvi] * alpha + uvs[triangle.uvj] * beta + uvs[triangle.uvk] * gamma;
+
+                            // récupération de la couleur du pixel (interpolation bilinéaire
+                            int w = this->w[triangle.group];
+                            int h = this->h[triangle.group];
+                            int x = uv[0] * (w - 1);
+                            int y = h - 1 - uv[1] * h;
+                            int index = 3 * (y * w + x);
+                            double r = textures[triangle.group][index] / 255.0;
+                            double g = textures[triangle.group][index + 1] / 255.0;
+                            double b = textures[triangle.group][index + 2] / 255.0;
+                            albedo = pow(Vector(r, g, b), GAMMA);
+                        }
+                        else if (!vertexcolors.empty())
+                        {
+                            albedo = vertexcolors[triangle.vtxi] * alpha + vertexcolors[triangle.vtxj] * beta + vertexcolors[triangle.vtxk] * gamma;
+                        }
+                        else
+                        {
+                            albedo = Vector(1, 1, 1);
+                        }
                     }
                 }
             }
@@ -257,8 +282,18 @@ void TriangleMesh::readOBJ(const char *obj)
         }
         if (line[0] == 'v' && line[1] == 't')
         {
+            // Vector vec;
+            // sscanf(line, "vt %lf %lf\n", &vec[0], &vec[1]);
+            // uvs.push_back(vec);
+
             Vector vec;
-            sscanf(line, "vt %lf %lf\n", &vec[0], &vec[1]);
+            double u, v;
+            sscanf(line, "vt %lf %lf\n", &u, &v);
+            // Ensure UV coordinates fall within the range [0, 1]
+            u -= floor(u);
+            v -= floor(v);
+            vec[0] = u;
+            vec[1] = v;
             uvs.push_back(vec);
         }
         if (line[0] == 'f')
@@ -553,6 +588,71 @@ void TriangleMesh::readOBJ(const char *obj)
     fclose(f);
     updateMainBoundingBox();
 };
+
+void TriangleMesh::readPNGTexture(const char *filename)
+{
+    // int width, height, numChannels;
+    // unsigned char *data = stbi_load(filename, &width, &height, &numChannels, 3);
+
+    // if (!data || data == NULL)
+    // {
+    //     std::cerr << "Error: Couldn't open " << filename << " for reading.\n";
+    //     return;
+    // }
+
+    // std::vector<unsigned char> texture;
+
+    // // if 4 channels, we have to remove the alpha channel
+    // if (numChannels == 4)
+    // {
+    //     std::vector<unsigned char> texture;
+    //     int size = width * height * 3;
+    //     texture.resize(size);
+    //     for (int i = 0; i < width * height; i += 1)
+    //     {
+    //         texture[i * 3] = data[i * 4];
+    //         texture[i * 3 + 1] = data[i * 4 + 1];
+    //         texture[i * 3 + 2] = data[i * 4 + 2];
+    //     }
+    //     textures.push_back(texture);
+    // }
+    // else
+    // {
+    //     std::vector<unsigned char> texture;
+    //     int size = width * height * 3;
+    //     texture.resize(size);
+    //     for (int i = 0; i < width * height * numChannels; i += numChannels)
+    //     {
+    //         texture[i] = data[i];
+    //         texture[i + 1] = data[i + 1];
+    //         texture[i + 2] = data[i + 2];
+    //     }
+    //     textures.push_back(texture);
+    // }
+    // stbi_image_free(data);
+
+    // textures.push_back(texture);
+    // w.push_back(width);
+    // h.push_back(height);
+
+    int channels, width, height;
+
+    unsigned char *data = stbi_load(filename, &width, &height, &channels, STBI_rgb);
+    if (!data)
+    {
+        // Handle error if image loading fails
+        throw std::runtime_error("Failed to load image.");
+    }
+
+    size_t dataSize = width * height * 3;
+
+    std::vector<unsigned char> texture(data, data + dataSize);
+    stbi_image_free(data);
+
+    textures.push_back(texture);
+    w.push_back(width);
+    h.push_back(height);
+}
 
 void TriangleMesh::updateBoundingBox(BoundingBox &bbox, int iMin, int iMax)
 {

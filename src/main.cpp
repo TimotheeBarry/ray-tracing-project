@@ -20,6 +20,7 @@
 #include "../include/BoundingBox.hpp"
 
 #include <iostream>
+#include <chrono>
 
 // Scene createDefaultScene()
 // {
@@ -87,13 +88,14 @@
 
 int main()
 {
+
 	bool showProgress = true;
-	int s = 256;
+	int s = 512;
 
 	int W = s;
 	int H = s;
-	Camera camera(Vector(0, 0, 55), W, H, 80, 1.5, 50);
-	const int nbRays = 25;
+	Camera camera(Vector(0, 0, 55), W, H, 80, 0.5, 50);
+	const int nbRays = 50;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -115,8 +117,9 @@ int main()
 
 	TriangleMesh mesh = TriangleMesh();
 	mesh.readOBJ("data/cat.obj");
+	mesh.readPNGTexture("data/cat_diff.png");
 	Vector barycenter = mesh.getBarycenter();
-	mesh.reflectance = .5;
+	// mesh.reflectance = .5;
 	mesh.translate(Vector(0, 0, 0) - barycenter);
 	mesh.scale(1);
 	mesh.translate(Vector(0, floor.center[1] + floor.radius - mesh.bbox.min[1], 0));
@@ -134,6 +137,7 @@ int main()
 	scene.addObject(wallBack);
 	scene.addObject(mesh);
 
+	auto start = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++)
 	{
@@ -144,7 +148,7 @@ int main()
 			for (int k = 0; k < nbRays; k++)
 			{
 				Ray ray = camera.launchRay(i, j);
-				color += scene.getColor(ray, 6);
+				color += scene.getColor(ray, 1);
 			}
 			color /= nbRays;
 
@@ -158,6 +162,8 @@ int main()
 	}
 
 	stbi_write_png("image.png", W, H, 3, &image[0], 0);
+	auto end = std::chrono::high_resolution_clock::now();
+	std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
 	return 0;
 }

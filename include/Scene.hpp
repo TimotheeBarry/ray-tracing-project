@@ -12,7 +12,7 @@ public:
 
     void addObject(const Object &obj);
 
-    bool intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t);
+    bool intersect(Ray &ray, Vector &P, Vector &N, int &objectIndex, double &t, Vector &albedo);
 
     bool intersectObjectOnly(Ray &ray);
 

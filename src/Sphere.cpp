@@ -20,7 +20,7 @@ Sphere::Sphere(
 {
 }
 
-double Sphere::intersect(Ray &ray, Vector &P, Vector &N) const
+double Sphere::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) const
 {
     double a = 1;
     double b = 2 * dot(ray.direction, ray.origin - center);
@@ -42,6 +42,7 @@ double Sphere::intersect(Ray &ray, Vector &P, Vector &N) const
     double t = t1 < t2 ? t1 : t2;
     P = ray.origin + ray.direction * t;
     N = (P - center).normalized();
+    albedo = this->albedo;
     return t;
 }
 
