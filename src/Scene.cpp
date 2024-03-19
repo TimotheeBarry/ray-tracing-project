@@ -159,7 +159,7 @@ Vector Scene::getTransparentColor(Ray &ray, Vector &P, Vector &N, int depth, boo
     else
     {
         // réflexion
-        return getReflectionColor(ray, P, N, depth - 1, isIndirect);
+        return getReflectionColor(ray, P, N, depth, isIndirect);
     }
 }
 
@@ -181,7 +181,8 @@ Vector Scene::getDiffusedColor(Ray &ray, Vector &P, Vector &N, int depth, bool i
             {
                 continue;
             }
-            color += light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector) * mat->brdf(albedo, wi, ray.direction, N);
+            double intensity = light->realIntensity() / (4 * PI * lightDistanceSquared) * std::max(0.0, dot(N, wi)) * dot(randomVector, (-1) * wi) / dot(axisVector, randomVector);
+            color += intensity * mat->brdf(albedo, wi, ray.direction, N);
         }
     }
     color += getIndirectColor(ray, P, N, depth - 1, albedo, mat);
@@ -192,20 +193,21 @@ Vector Scene::getReflectionColor(Ray &ray, Vector &P, Vector &N, int depth, bool
 {
     Vector reflexionVector = ray.direction - 2 * dot(ray.direction, N) * N;
     Ray reflectedRay(P + N * EPSILON, reflexionVector.normalized());
-    return this->getColor(reflectedRay, depth, isIndirect);
+    return this->getColor(reflectedRay, depth - 1, isIndirect);
 }
 
 Vector Scene::getMirrorColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, double reflectance, Vector &albedo, Material *mat)
 {
     Vector diffused(0, 0, 0);
-    if (reflectance < 1)
+    double p = uniform(gen);
+    if (p <= reflectance)
     {
-        // pas la peine de calculer la couleur diffusée si la sphère est totalement réfléchissante
-        diffused = getDiffusedColor(ray, P, N, depth, isIndirect, albedo, mat);
+        return getReflectionColor(ray, P, N, depth, isIndirect);
     }
-    Vector reflected = getReflectionColor(ray, P, N, depth - 1, isIndirect);
-
-    return (1 - reflectance) * (diffused) + reflectance * reflected;
+    else
+    {
+        return getDiffusedColor(ray, P, N, depth, isIndirect, albedo, mat);
+    }
 }
 
 Vector Scene::computeColorFromBRDF(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, Vector &albedo, Material *mat)

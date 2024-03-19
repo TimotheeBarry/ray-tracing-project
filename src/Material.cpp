@@ -7,9 +7,9 @@ Vector Diffuse::brdf(Vector &albedo, Vector &wi, Vector &wo, Vector &N) const
 
 Vector BlinnPhong::brdf(Vector &albedo, Vector &wi, Vector &wo, Vector &N) const
 {
-    Vector wr = (2 * dot(N, wo) * N - wo).normalized();
+    Vector wr = (wo - 2 * dot(wo, N) * N).normalized();
     double cosTheta = std::max(0.0, dot(wi, wr));
-    return albedo * ((1 - shininess) * (1. / PI) + shininess * (alpha + 2) / (2. * PI) * pow(cosTheta, alpha));
+    return albedo * ((1 - shininess) / PI + shininess * (alpha + 2) / (2. * PI) * pow(cosTheta, alpha));
 }
 
 Vector Transparent::brdf(Vector &albedo, Vector &wi, Vector &wo, Vector &N) const

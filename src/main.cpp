@@ -31,7 +31,7 @@ int main()
 	int W = s;
 	int H = s;
 	Camera camera(Vector(0, 0, 55), W, H, 60, 1, 55);
-	const int nbRays = 25;
+	const int nbRays = 100;
 
 	std::vector<unsigned char> image(W * H * 3, 0);
 
@@ -43,7 +43,10 @@ int main()
 	Diffuse diffuse;		 // materiau diffus (lambertien)
 	Transparent glass(1.52); // verre
 	Mirror mirror(1);		 // miroir
-	BlinnPhong blinnPhong(1000, 0.1);
+	Mirror semiMirror(.1);
+	BlinnPhong blinnPhong1(1000, 0.01);
+	BlinnPhong blinnPhong2(1000, 0.05);
+	BlinnPhong blinnPhong3(1000, 0.1);
 
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1), &diffuse);
 	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0, 0), &diffuse);
@@ -52,11 +55,11 @@ int main()
 	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0), &diffuse);
 	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1), &diffuse);
 
-	Sphere sphere1(Vector(0, 20, 0), 5, Vector(1, .0, 0), &blinnPhong); // sphere centrale
-	Sphere sphere2(Vector(20, 15, -10), 5, Vector(1, .5, .3), &mirror); // sphere droite
-	Sphere sphere3(Vector(-10, 12, 25), 5, Vector(1, 1, 1), &glass);	// sphere gauche
+	Sphere sphere1(Vector(0, 0, -40), 10, Vector(1, .1, .1), &mirror);		 // sphere centrale
+	Sphere sphere2(Vector(20, 0, -40), 10, Vector(.1, 1, .1), &blinnPhong2); // sphere droite
+	Sphere sphere3(Vector(-20, 0, -40), 10, Vector(.1, .1, 1), &glass);		 // sphere gauche
 
-	TriangleMesh mesh = TriangleMesh("data/cat.obj", "data/cat_diff.png", &blinnPhong);
+	TriangleMesh mesh = TriangleMesh("data/cat.obj", "data/cat_diff.png", &glass);
 
 	Vector barycenter = mesh.getBarycenter();
 	mesh.translate(Vector(0, 0, 0) - barycenter);
@@ -74,7 +77,7 @@ int main()
 	scene.addObject(wallRight);
 	scene.addObject(wallFront);
 	scene.addObject(wallBack);
-	scene.addObject(mesh);
+	// scene.addObject(mesh);
 
 	auto start = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for schedule(dynamic, 1)
@@ -100,9 +103,11 @@ int main()
 		}
 	}
 
-	stbi_write_png("image.png", W, H, 3, &image[0], 0);
 	auto end = std::chrono::high_resolution_clock::now();
-	std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+	int duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000. << "s" << std::endl;
+	auto resultName = imageName("generated/image", "png", s, nbRays, duration);
+	stbi_write_png(resultName, W, H, 3, &image[0], 0);
 
 	return 0;
 }
