@@ -63,21 +63,6 @@ void Vector::clip(double a, double b)
     coord[2] = std::max(a, std::min(b, coord[2]));
 }
 
-Vector Vector::generateRandomCosineVector()
-{
-    // génère un vecteur aléatoire suivant une loi cosinus selon le vecteur courant
-    double r1 = uniform(gen);
-    double r2 = uniform(gen);
-    Vector randomVector(cos(2 * PI * r1) * sqrt(1 - r2), sin(2 * PI * r1) * sqrt(1 - r2), sqrt(r2));
-
-    // on créé un repère local (u, v, N) à partir de N
-    Vector u = cross(*this, generateRandomUniformVector()).normalized();
-    Vector v = cross(*this, u).normalized();
-
-    // on retourne le vecteur aléatoire dans le repère global
-    return randomVector[0] * u + randomVector[1] * v + randomVector[2] * (*this);
-}
-
 Vector Vector::rotate(double angle, const Vector &axis)
 {
     // rotation d'un vecteur autour d'un axe
@@ -149,4 +134,35 @@ Vector generateRandomUniformVector()
 {
     // génère un vecteur aléatoire dont chaque coordonnée est comprise entre -1 et 1 (uniformément)
     return Vector(uniform(gen) - .5, uniform(gen) - .5, uniform(gen) - .5);
+}
+
+Vector generateRandomCosineVector(Vector &N)
+{
+    // génère un vecteur aléatoire suivant une loi cosinus selon le vecteur courant
+    double r1 = uniform(gen);
+    double r2 = uniform(gen);
+    Vector randomVector(cos(2 * PI * r1) * sqrt(1 - r2), sin(2 * PI * r1) * sqrt(1 - r2), sqrt(r2));
+
+    // on créé un repère local (u, v, N) à partir de N
+    Vector u = cross(N, generateRandomUniformVector()).normalized();
+    Vector v = cross(N, u).normalized();
+
+    // on retourne le vecteur aléatoire dans le repère global
+    return (randomVector[0] * u + randomVector[1] * v + randomVector[2] * N).normalized();
+}
+
+Vector generateRandomBlinnPhongVector(Vector &wr, double alpha)
+{
+    // génère un vecteur aléatoire suivant une loi (?) pour une brdf Blinn Phong
+    double r1 = uniform(gen);
+    double r2 = uniform(gen);
+    double sqrtTerme = 1 - std::pow(r2, 2 / (alpha + 1));
+    Vector randomVector(cos(2 * PI * r1) * sqrt(sqrtTerme), sin(2 * PI * r1) * sqrt(sqrtTerme), sqrt(std::pow(r2, 1 / (alpha + 1))));
+
+    // on créé un repère local (u, v, N) à partir de wr
+    Vector u = cross(wr, generateRandomUniformVector()).normalized();
+    Vector v = cross(wr, u).normalized();
+
+    // on retourne le vecteur aléatoire dans le repère global
+    return (randomVector[0] * u + randomVector[1] * v + randomVector[2] * wr).normalized();
 }

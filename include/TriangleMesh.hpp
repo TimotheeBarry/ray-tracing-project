@@ -5,14 +5,13 @@
 #include "BoundingBox.hpp"
 #include "TriangleIndices.hpp"
 #include "BVH.hpp"
+#include "Material.hpp"
 #include "Constants.hpp"
 
 class TriangleMesh : public Object
 {
 public:
     ~TriangleMesh() {}
-    TriangleMesh(){};
-
     std::vector<TriangleIndices> indices;
     std::vector<Vector> vertices;
     std::vector<Vector> normals;
@@ -20,10 +19,24 @@ public:
     std::vector<Vector> vertexcolors;
     BoundingBox bbox;
     BVH bvh;
-    double reflectance = 0.0;
-    int bvhMinTriangles = 10;
+    Material *mat;
+    int bvhMinTriangles;
+    
+    TriangleMesh(const char *obj,
+                 const char *textures,
+                 Material *mat = nullptr,
+                 int bvhMinTriangles = 5)
+        : mat(mat), bvhMinTriangles(bvhMinTriangles)
+    {
+        readOBJ(obj);
+        readPNGTexture(textures);
+        if (mat == nullptr)
+        {
+            this->mat = new Diffuse();
+        }
+    }
 
-    void readOBJ(const char *obj);
+        void readOBJ(const char *obj);
     void readPNGTexture(const char *filename);
     void scale(double s);
     void translate(Vector t);

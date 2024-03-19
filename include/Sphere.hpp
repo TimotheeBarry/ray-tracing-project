@@ -4,24 +4,26 @@
 #include "Vector.hpp"
 #include "Ray.hpp"
 #include "Object.hpp"
-#include "BRDF.hpp"
+#include "Material.hpp"
 
 class Sphere : public Object
 {
 public:
     Vector center;
     double radius;
-    BRDF *brdf;
+    Vector albedo;
+    Material *mat;
 
     // Constructor with default parameters
     Sphere(const Vector &center = Vector(),
            double radius = 0.0,
-           BRDF *brdf = nullptr)
-        : center(center), radius(radius), brdf(brdf)
+           const Vector &albedo = Vector(1, 1, 1),
+           Material *mat = nullptr)
+        : center(center), radius(radius), albedo(albedo), mat(mat)
     {
-        if (brdf == nullptr)
+        if (mat == nullptr)
         {
-            this->brdf = new LambertianBRDF(Vector(1, 1, 1));
+            this->mat = new Diffuse();
         }
     }
 

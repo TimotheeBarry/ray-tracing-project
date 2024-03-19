@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 
-
 class Vector
 {
 public:
@@ -15,7 +14,7 @@ public:
     Vector normalized();
     void normalize();
     void clip(double a, double b);
-    Vector generateRandomCosineVector();
+
     std::string toString() const;
     Vector rotate(double angle, const Vector &axis);
 
@@ -32,3 +31,5 @@ Vector pow(const Vector &a, double b);
 Vector cross(const Vector &a, const Vector &b);
 Vector generateRandomUniformVector();
 double dot(const Vector &a, const Vector &b);
+Vector generateRandomCosineVector(Vector &N);
+Vector generateRandomBlinnPhongVector(Vector &wr, double alpha);

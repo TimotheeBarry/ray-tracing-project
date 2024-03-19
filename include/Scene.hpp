@@ -15,8 +15,10 @@ public:
     Vector getColor(Ray &ray, int depth, bool isIndirect = false);
 
 private:
-    Vector getIndirectColor(Vector &P, Vector &N, int depth, Vector &albedo);
-    Vector getTransparentSphereColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, double refractiveIndex);
-    Vector getDiffusedColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, Vector &albedo);
+    Vector getIndirectColor(Ray &ray, Vector &P, Vector &N, int depth, Vector &albedo, Material *mat);
+    Vector getTransparentColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, double refractiveIndex);
+    Vector getDiffusedColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, Vector &albedo, Material *mat);
     Vector getReflectionColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect);
+    Vector getMirrorColor(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, double reflectance, Vector &albedo, Material *mat);
+    Vector computeColorFromBRDF(Ray &ray, Vector &P, Vector &N, int depth, bool isIndirect, Vector &albedo, Material *mat);
 };

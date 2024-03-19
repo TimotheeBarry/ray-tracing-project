@@ -25,10 +25,7 @@ double Sphere::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) const
     double t = t1 < t2 ? t1 : t2;
     P = ray.origin + ray.direction * t;
     N = (P - center).normalized();
-    if (brdf != nullptr)
-    {
-        albedo = brdf->getAlbedo();
-    }
+    albedo = this->albedo;
 
     return t;
 }
