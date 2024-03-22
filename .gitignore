@@ -1,6 +1,8 @@
-*.png
 *.exe
 template.cpp
 /_old
 /.vscode
+/generated
+/images
+rapport.md
 
