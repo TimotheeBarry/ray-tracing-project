@@ -22,3 +22,6 @@ Timothée Barry
 - Effets optiques (Anti Aliasing, DOF, correction gamma)
 - Gestion des sources de lumières (ponctuelles, directionnelles, sphères lumineuses)
 
+## Rapport
+Ceci n'est pas le rapport du projet, celui-ci se trouve dans le fichier `Rapport_raytracer_BARRY.pdf`.
+
