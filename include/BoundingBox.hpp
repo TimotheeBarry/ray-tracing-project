@@ -11,6 +11,7 @@ class BoundingBox
 {
 public:
     BoundingBox() : min(Vector()), max(Vector()){};
+    ~BoundingBox() {}
     Vector min, max;
 
     bool intersect(Ray &ray) const;

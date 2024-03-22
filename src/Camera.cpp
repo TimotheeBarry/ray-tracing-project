@@ -7,8 +7,8 @@ Ray Camera::launchRay(int i, int j) const
     auto dy = (uniform(gen) - .5) * this->aperture;
     Vector rayOrigin = this->origin + Vector(dx, dy, 0);
     // anti aliasing
-    double di, dj;
-    boxMuller(0.2, di, dj);
+    double di = 0.0, dj = 0.0;
+    boxMuller(0.3, di, dj);
     // direction du rayon
     Vector direction = Vector(
         j + .5 - this->width / 2 + dj,

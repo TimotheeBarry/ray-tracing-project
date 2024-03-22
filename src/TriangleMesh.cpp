@@ -48,9 +48,9 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) c
                     }
                     double t = dot(v0 - ray.origin, Ni) / divisor;
 
-                    if (t < 0 || t > ray.length)
+                    if (t < 0 || t > ray.length || t > tmin || t < 2 * EPSILON)
                     {
-                        // point d'intersection derrière le rayon
+                        // point d'intersection derrière le rayon ou plus grand que distance min ou < 2 *Epsilon (fausse intersection)
                         continue;
                     }
                     Vector crossNumerator = cross(v0 - ray.origin, ray.direction);
@@ -101,7 +101,6 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) c
             }
             else
             {
-                double t1, t2;
                 if (node->left->bbox.intersect(ray))
                 {
                     stack.push(node->left);
@@ -112,6 +111,7 @@ double TriangleMesh::intersect(Ray &ray, Vector &P, Vector &N, Vector &albedo) c
                 }
             }
         }
+
         return tmin;
     }
 }
@@ -215,6 +215,7 @@ void TriangleMesh::rotate(double angle, Vector axis)
     for (int i = 0; i < vertices.size(); i++)
     {
         vertices[i] = barycenter + (vertices[i] - barycenter).rotate(angle, axis);
+        normals[i] = normals[i].rotate(angle, axis);
     }
     updateMainBoundingBox();
 }

@@ -21,22 +21,22 @@ public:
     BVH bvh;
     Material *mat;
     int bvhMinTriangles;
-    
+
     TriangleMesh(const char *obj,
                  const char *textures,
                  Material *mat = nullptr,
-                 int bvhMinTriangles = 5)
+                 int bvhMinTriangles = 3)
         : mat(mat), bvhMinTriangles(bvhMinTriangles)
     {
         readOBJ(obj);
-        readPNGTexture(textures);
+        if (textures != nullptr)
+            readPNGTexture(textures);
         if (mat == nullptr)
-        {
+
             this->mat = new Diffuse();
-        }
     }
 
-        void readOBJ(const char *obj);
+    void readOBJ(const char *obj);
     void readPNGTexture(const char *filename);
     void scale(double s);
     void translate(Vector t);

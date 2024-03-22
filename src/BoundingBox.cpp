@@ -1,38 +1,36 @@
 #include "../include/BoundingBox.hpp"
+#include "../include/Functions.hpp"
 #include <limits>
 #include <iostream>
+#include <cmath>
 
 bool BoundingBox::intersect(Ray &ray) const
 {
-    double intervalMin(-std::numeric_limits<double>::infinity()), intervalMax(std::numeric_limits<double>::infinity());
-    double tMin, tMax;
-    for (int i = 0; i < 3; i++)
+    double txMin = (min[0] - ray.origin[0]) / ray.direction[0];
+    double txMax = (max[0] - ray.origin[0]) / ray.direction[0];
+    if (txMin > txMax)
     {
-        // pour chaque cooordonnées, on calcule l'intervalle d'intersection avec le rayon
-        if (ray.direction[i] == 0)
-        {
-            continue;
-        }
-        tMin = (min[i] - ray.origin[i]) / ray.direction[i];
-        tMax = (max[i] - ray.origin[i]) / ray.direction[i];
-        if (tMin > tMax)
-        {
-            std::swap(tMin, tMax);
-        }
-        // On met à jour l'intervalle d'intersection global
-        if (tMin > intervalMin)
-        {
-            intervalMin = tMin;
-        }
-        if (tMax < intervalMax)
-        {
-            intervalMax = tMax;
-        }
-        // Si l'intervalle d'intersection est vide, on renvoie false
-        if (intervalMin > intervalMax)
-        {
-            return false;
-        }
+        std::swap(txMin, txMax);
+    }
+    double tyMin = (min[1] - ray.origin[1]) / ray.direction[1];
+    double tyMax = (max[1] - ray.origin[1]) / ray.direction[1];
+    if (tyMin > tyMax)
+    {
+        std::swap(tyMin, tyMax);
+    }
+    if ((txMin > tyMax) || (tyMin > txMax))
+    {
+        return false;
+    }
+    double tzMin = (min[2] - ray.origin[2]) / ray.direction[2];
+    double tzMax = (max[2] - ray.origin[2]) / ray.direction[2];
+    if (tzMin > tzMax)
+    {
+        std::swap(tzMin, tzMax);
+    }
+    if ((txMin > tzMax) || (tzMin > txMax) || (tyMin > tzMax) || (tzMin > tyMax))
+    {
+        return false;
     }
     return true;
 };

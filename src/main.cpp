@@ -24,90 +24,117 @@
 
 int main()
 {
-
-	bool showProgress = true;
-	int s = 512;
-
-	int W = s;
-	int H = s;
-	Camera camera(Vector(0, 0, 55), W, H, 60, 1, 55);
-	const int nbRays = 100;
-
-	std::vector<unsigned char> image(W * H * 3, 0);
-
-	Scene scene = Scene();
-	LightSource lightSource(Vector(-10, 20, 40), 5, 4e9);
-
-	scene.addObject(lightSource);
-
-	Diffuse diffuse;		 // materiau diffus (lambertien)
-	Transparent glass(1.52); // verre
-	Mirror mirror(1);		 // miroir
+	// Materiaux principaux
+	Diffuse diffuse;
+	Transparent glass(1.52);
+	Transparent water(1.33);
+	Transparent diamond(2.42);
+	Mirror mirror(1);
 	Mirror semiMirror(.1);
-	BlinnPhong blinnPhong1(1000, 0.01);
-	BlinnPhong blinnPhong2(1000, 0.05);
-	BlinnPhong blinnPhong3(1000, 0.1);
+	Mirror semiMirror2(.5);
+	BlinnPhong blinnPhong_001(1000, 0.01);
+	BlinnPhong blinnPhong_0025(1000, 0.025);
+	BlinnPhong blinnPhong_005(1000, 0.05);
+	BlinnPhong blinnPhong_010(1000, 0.1);
 
+	// Objets principaux
+	LightSource lightSource(Vector(-10, 20, 40), 5, 4e9); // default -10 20 40
 	Sphere floor = Sphere(Vector(0, -10000 - 20, 0), 10000, Vector(1, 1, 1), &diffuse);
-	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0, 0), &diffuse);
-	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 50), 10000, Vector(0, 1, 1), &diffuse);
-	Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, Vector(1, 0, 1), &diffuse);
-	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0, 1, 0), &diffuse);
-	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0, 0, 1), &diffuse);
+	Sphere ceiling = Sphere(Vector(0, 10000 + 50, 0), 10000, Vector(1, 0.01, 0.01), &diffuse);
+	Sphere wallFront = Sphere(Vector(0, 0, -10000 - 50), 10000, Vector(0.01, 1, 1), &diffuse);
+	Sphere wallBack(Vector(0, 0, 10000 + 100), 10000, Vector(1, 0.01, 1), &diffuse);
+	Sphere wallLeft = Sphere(Vector(-10000 - 50, 0, 0), 10000, Vector(0.01, 1, 0.01), &diffuse);
+	Sphere wallRight = Sphere(Vector(10000 + 50, 0, 0), 10000, Vector(0.01, 0.01, 1), &diffuse);
 
-	Sphere sphere1(Vector(0, 0, -40), 10, Vector(1, .1, .1), &mirror);		 // sphere centrale
-	Sphere sphere2(Vector(20, 0, -40), 10, Vector(.1, 1, .1), &blinnPhong2); // sphere droite
-	Sphere sphere3(Vector(-20, 0, -40), 10, Vector(.1, .1, 1), &glass);		 // sphere gauche
+	// Camera
+	int res = 256;
+	int nbRays = 200;
+	int fov = 60;
+	int aperture = 0;
+	int focalLength = 55;
+	Camera cam(Vector(0, 0, 55), res, res, nbRays, fov, aperture, focalLength);
 
-	TriangleMesh mesh = TriangleMesh("data/cat.obj", "data/cat_diff.png", &glass);
-
-	Vector barycenter = mesh.getBarycenter();
-	mesh.translate(Vector(0, 0, 0) - barycenter);
-	mesh.scale(0.8);
-	mesh.translate(Vector(0, floor.center[1] + floor.radius - mesh.bbox.min[1], 0));
-	mesh.rotate(-PI / 4, Vector(0, 1, 0));
-	mesh.initBVH();
-
-	scene.addObject(sphere1);
-	scene.addObject(sphere2);
-	scene.addObject(sphere3);
+	// Scene - Murs et sol
+	Scene scene = Scene();
 	scene.addObject(floor);
 	scene.addObject(ceiling);
 	scene.addObject(wallLeft);
 	scene.addObject(wallRight);
 	scene.addObject(wallFront);
 	scene.addObject(wallBack);
-	// scene.addObject(mesh);
+	scene.addObject(lightSource);
 
+	// Scene - Objets principaux
+
+	Sphere sphere1 = Sphere(Vector(-20, -10, -20), 10, Vector(1, 0.05, 0.05), &diffuse);
+	Sphere sphere2 = Sphere(Vector(10, 10, 20), 10, Vector(0.1, 1, .3), &diffuse);
+	Sphere sphere3 = Sphere(Vector(0, 0, 0), 20, Vector(0.1, .3, 1), &diffuse);
+	// TriangleMesh mesh1 = TriangleMesh("data/cat.obj", "data/cat_diff.png", &diffuse);
+	// TriangleMesh mesh2 = TriangleMesh("data/cat.obj", "data/cat_diff.png", &diffuse);
+	// TriangleMesh mesh3 = TriangleMesh("data/cat.obj", "data/cat_diff.png", &glass);
+
+	// Vector barycenter1 = mesh1.getBarycenter();
+	// mesh1.translate(Vector(-16, 0, 0) - barycenter1);
+	// mesh1.scale(.4);
+	// mesh1.rotate(PI / 4, Vector(0, 0, 1));
+	// mesh1.translate(Vector(0, floor.center[1] + floor.radius - mesh1.bbox.min[1], 0));
+	// mesh1.rotate(-PI / 4, Vector(0, 1, 0));
+	// mesh1.initBVH();
+
+	// Vector barycenter2 = mesh2.getBarycenter();
+	// mesh2.translate(Vector(16, 0, 0) - barycenter2);
+	// mesh2.scale(.8);
+	// mesh2.translate(Vector(0, floor.center[1] + floor.radius - mesh2.bbox.min[1], 0));
+	// mesh2.rotate(-3 * PI / 4, Vector(0, 1, 0));
+	// mesh2.initBVH();
+
+	// Vector barycenter3 = mesh3.getBarycenter();
+	// mesh3.translate(Vector(16, 0, 0) - barycenter3);
+	// mesh3.scale(.7);
+	// mesh3.rotate(-PI / 3, Vector(0, 1, 0));
+	// mesh3.translate(Vector(0, floor.center[1] + floor.radius - mesh3.bbox.min[1], 0));
+
+	// mesh3.initBVH();
+
+	// Scene - Ajout des objets à la scène
+	// scene.addObject(mesh1);
+	// scene.addObject(mesh2);
+	// scene.addObject(mesh3);
+	// scene.addObject(sphere1);
+	// scene.addObject(sphere2);
+	scene.addObject(sphere3);
+
+	// Génération de l'image
+	std::vector<unsigned char> image(cam.width * cam.height * 3, 0);
 	auto start = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for schedule(dynamic, 1)
-	for (int i = 0; i < H; i++)
+	for (int i = 0; i < cam.height; i++)
 	{
-		for (int j = 0; j < W; j++)
+		for (int j = 0; j < cam.width; j++)
 		{
 			Vector color(0, 0, 0);
 			double di, dj;
 			for (int k = 0; k < nbRays; k++)
 			{
-				Ray ray = camera.launchRay(i, j);
-				color += scene.getColor(ray, 5);
+				Ray ray = cam.launchRay(i, j);
+				color += scene.getColor(ray, 10);
 			}
 			color /= nbRays;
 
 			color.clip(0, 255);
 			color = gammaCorrection(color);
 
-			image[(i * W + j) * 3 + 0] = color[0]; // RED
-			image[(i * W + j) * 3 + 1] = color[1]; // GREEN
-			image[(i * W + j) * 3 + 2] = color[2]; // BLUE
+			image[(i * cam.width + j) * 3 + 0] = color[0]; // RED
+			image[(i * cam.width + j) * 3 + 1] = color[1]; // GREEN
+			image[(i * cam.width + j) * 3 + 2] = color[2]; // BLUE
 		}
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
 	int duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000. << "s" << std::endl;
-	auto resultName = imageName("generated/image", "png", s, nbRays, duration);
-	stbi_write_png(resultName, W, H, 3, &image[0], 0);
+	auto resultName = imageName("generated/image", "png", res, nbRays, duration);
+	stbi_write_png(resultName, cam.width, cam.height, 3, &image[0], 0);
 
 	return 0;
 }
